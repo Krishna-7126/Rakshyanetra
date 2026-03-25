@@ -84,7 +84,7 @@ function linReg(ys) {
 }
 
 // ── Forecast label ────────────────────────────────────────────
-const MAINT_THRESHOLD = 40;
+const MAINT_THRESHOLD = 70;
 function forecastLabel(slope, lastScore, readingIntervalSec = 2) {
   if (slope >= 0) return { text: '📈 Stable / Improving — Maintenance Not Required', color: '#10B981' };
   const steps = (lastScore - MAINT_THRESHOLD) / Math.abs(slope);
@@ -98,12 +98,13 @@ function forecastLabel(slope, lastScore, readingIntervalSec = 2) {
 // ── Anomaly confidence ────────────────────────────────────────
 function calcConfidence(base, top, diff) {
   const checks = [
-    [(base?.vib_rms     ?? 0) > 0.8,  20, 'Base vibration elevated'],
-    [(top?.vib_rms      ?? 0) > 0.8,  20, 'Top vibration elevated'],
-    [(diff?.vib_ratio   ?? 0) > 2.0,  25, 'High differential ratio (resonance risk)'],
-    [(top?.tilt_x       ?? 0) > 8 || (top?.tilt_y ?? 0) > 8, 15, 'Tilt exceeds safety band'],
-    [(base?.stress_proxy ?? 0) > 0.15, 15, 'Stress proxy above threshold'],
-    [!!(base?.sustained || top?.sustained), 5, 'Sustained alert active'],
+    [(base?.vib_rms     ?? 0) > 0.35, 10, 'Base vibration > Warning (0.35g)'],
+    [(base?.vib_rms     ?? 0) > 0.60, 20, 'Base vibration > Critical (0.60g)'],
+    [(top?.vib_rms      ?? 0) > 0.35, 10, 'Top vibration > Warning (0.35g)'],
+    [(top?.vib_rms      ?? 0) > 0.60, 20, 'Top vibration > Critical (0.60g)'],
+    [(diff?.vib_ratio   ?? 0) > 1.5,  25, 'High differential ratio (> 1.5x)'],
+    [(top?.tilt_x       ?? 0) > 3.0 || (top?.tilt_y ?? 0) > 3.0, 25, 'Tilt exceeds critical band (> 3.0°)'],
+    [!!(base?.alert || top?.alert),   10, 'Native node alert triggered'],
   ];
   const triggered = checks.filter(([cond]) => cond);
   return {
@@ -126,22 +127,29 @@ function genReport(base, top, diff, alerts, baseOnline, topOnline) {
   if (!topOnline)
     lines.push({ t: 'warn', txt: '⚠ Top Node offline. Tilt and upper-floor vibration monitoring suspended.' });
 
-  if (status === 'normal' && health > 75)
-    lines.push({ t: 'ok', txt: `System nominal. Health index: ${health}/100. Micro-vibrations at Base Node are within standard environmental parameters. No structural concerns observed.` });
-  if ((base?.vib_rms ?? 0) > 0.8 && baseOnline)
-    lines.push({ t: 'warn', txt: `Elevated base vibration (${base.vib_rms.toFixed(3)} g). Monitor for sustained excitation above 1.0 g. Inspect for ground-floor machinery or traffic-induced resonance.` });
-  if (ratio > 2 && baseOnline && topOnline)
-    lines.push({ t: 'warn', txt: `High Top-to-Base vibration ratio (${ratio.toFixed(2)}×). Suggests resonance amplification at upper floors. Recommend immediate dampener inspection and occupant load review.` });
-  if (((top?.tilt_x ?? 0) > 5 || (top?.tilt_y ?? 0) > 5) && topOnline)
-    lines.push({ t: 'warn', txt: `Structural inclination detected — Tilt X: ${(top?.tilt_x ?? 0).toFixed(2)}°, Tilt Y: ${(top?.tilt_y ?? 0).toFixed(2)}°. Approaching alert threshold. Schedule geodetic baseline survey.` });
-  if ((base?.stress_proxy ?? 0) > 0.15 && baseOnline)
-    lines.push({ t: 'warn', txt: `Stress proxy elevated (${base.stress_proxy.toFixed(4)}). Indicative of recurring dynamic loading. Review occupancy patterns and wind load history.` });
+  if (status === 'normal' && health >= 90)
+    lines.push({ t: 'ok', txt: `System nominal. Health index: ${health}/100. Vibrations are within safe environmental parameters. No structural concerns observed.` });
+  
+  if ((base?.vib_rms ?? 0) > 0.60 && baseOnline)
+    lines.push({ t: 'crit', txt: `CRITICAL Base vibration (${base.vib_rms.toFixed(3)}g). Exceeds 0.60g tolerance. Imminent seismic/ground-fault risk.` });
+  else if ((base?.vib_rms ?? 0) > 0.35 && baseOnline)
+    lines.push({ t: 'warn', txt: `Elevated base vibration (${base.vib_rms.toFixed(3)}g > 0.35g threshold). Monitor for sustained excitation.` });
+
+  if (ratio > 1.5 && baseOnline && topOnline)
+    lines.push({ t: 'crit', txt: `RESONANCE ALERT: High Top-to-Base vibration ratio (${ratio.toFixed(2)}x > 1.5x). Immediate dampener inspection recommended.` });
+
+  if (((top?.tilt_x ?? 0) > 3.0 || (top?.tilt_y ?? 0) > 3.0) && topOnline)
+    lines.push({ t: 'crit', txt: `CRITICAL INCLINATION: Tilt exceeding 3.0°. Structural drift detected. Evacuation protocols advised.` });
+
   if ((base?.sustained || top?.sustained))
-    lines.push({ t: 'crit', txt: 'Sustained alert active. Threshold breaches are not transient — initiate structural inspection protocol per IS 1893 guidelines.' });
-  if (status === 'critical')
-    lines.push({ t: 'crit', txt: `CRITICAL: AI health index dropped to ${health}/100. Immediate intervention required. Evacuate non-essential personnel and dispatch structural engineer.` });
+    lines.push({ t: 'crit', txt: 'Sustained alert active from ESP32. Anomalies are not transient.' });
+
+  if (status === 'critical' || health < 70)
+    lines.push({ t: 'crit', txt: `CRITICAL: AI health index dropped to ${health}/100. Immediate intervention required.` });
+
   if (lines.length === 0)
-    lines.push({ t: 'ok', txt: `Health score ${health}/100. All parameters within operational envelope. Continue standard monitoring at current intervals.` });
+    lines.push({ t: 'ok', txt: `Health score ${health}/100. All parameters within safe envelope. Continue standard monitoring.` });
+  
   return lines;
 }
 
@@ -175,7 +183,7 @@ const RadarTip = ({ active, payload }) => {
 const MAX_HIST = 50;
 
 export default function AIPrediction() {
-  const { data, baseOnline, topOnline, alertHistory } = useApp();
+  const { data, baseOnline, topOnline, alertHistory, anomalyConfidence, vibrationAmplificationRatio } = useApp();
   const { base, top, diff, alerts } = data;
 
   // Track health_score over time (ts-gated)
@@ -236,34 +244,71 @@ export default function AIPrediction() {
 
   const slope = healthHist.length >= 3 ? linReg(healthHist.map(h => h.score)).slope : 0;
 
-  return (
-    <div className="flex flex-col gap-4 h-full">
+  // ── UI Logic for Panels ──
+  const isNormal = anomalyConfidence < 50;
+  const isIrregular = anomalyConfidence >= 50 && anomalyConfidence <= 75;
+  const isAnomaly = anomalyConfidence > 75;
+  const confColor = isAnomaly ? '#EF4444' : isIrregular ? '#F59E0B' : '#10B981';
+  const confText = isAnomaly ? 'STRUCTURAL ANOMALY ISOLATED' : isIrregular ? 'IRREGULARITY DETECTED' : 'NORMAL PATTERN';
 
+  const ratio = vibrationAmplificationRatio ?? 0;
+  const isCritRatio = ratio > 1.5;
+  const isWarnRatio = ratio >= 1.0 && ratio <= 1.5;
+  const ratioColor = isCritRatio ? '#EF4444' : isWarnRatio ? '#F59E0B' : '#10B981';
+  const shift = ratio < 1.0 ? 0 : Math.min((ratio - 1.0) * 60, 45);
+
+  let insightTitle = 'System Nominal';
+  let insightColor = '#10B981';
+  let insightBody = 'Vibrations and tilt patterns are within safe environmental parameters. No structural concerns observed.';
+
+  if (!baseOnline && !topOnline) {
+    insightTitle = 'SYSTEM OFFLINE';
+    insightColor = '#6B7280';
+    insightBody = 'Both sensor nodes offline. No structural data available. Verify ESP32 power supply and WiFi connectivity.';
+  } else if (alerts?.building_status === 'critical' || health < 70) {
+    insightTitle = 'CRITICAL ALERT';
+    insightColor = '#EF4444';
+    insightBody = `AI health index dropped to ${health}/100. Immediate intervention required. Review telemetry logs.`;
+  } else if (alerts?.building_status === 'warning' || (baseOnline && base?.vib_rms > 0.35) || (topOnline && top?.vib_rms > 0.35)) {
+    insightTitle = 'WARNING';
+    insightColor = '#F59E0B';
+    insightBody = 'Elevated structural movement detected. Monitor for sustained excitation.';
+  }
+
+  return (
+    <div className="flex flex-col gap-4 h-full w-full overflow-y-auto pb-6 fade-up">
+      <style>{`
+        @keyframes sweep {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-sweep { animation: sweep 3s linear infinite; }
+      `}</style>
       {/* ── Header ── */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <Brain size={18} className="text-violet-400" />
         <h2 className="text-lg font-semibold text-slate-200">AI Structural Prediction</h2>
-        <span className="text-xs text-slate-500 ml-2">Deep Learning Simulation · Predictive Maintenance Engine</span>
+        <span className="text-xs text-slate-500 ml-2 hidden sm:inline">Deep Learning Simulation · Predictive Maintenance</span>
         <div className="ml-auto flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/5">
           <div className="w-1.5 h-1.5 rounded-full bg-violet-400 pulse-dot" />
-          <span className="text-[10px] text-violet-400 font-bold tracking-widest">NEURAL ENGINE ACTIVE</span>
+          <span className="text-[10px] text-violet-400 font-bold tracking-widest hidden sm:inline">NEURAL ENGINE ACTIVE</span>
         </div>
       </div>
 
-      {/* ── Row 1: Forecast + Radar ── */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1">
+      {/* ── Component Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 min-h-0">
 
         {/* Predictive Maintenance Forecaster */}
         <div
-          className="glass-card flex-1 p-4 flex flex-col relative overflow-hidden"
-          style={{ borderColor: '#4C1D95', boxShadow: '0 0 24px rgba(139,92,246,0.14)' }}
+          className="glass-card xl:col-span-2 p-4 flex flex-col relative overflow-hidden min-h-[400px] fade-up stagger-1"
+          style={{ borderColor: 'rgba(139,92,246,0.3)', boxShadow: '0 0 30px rgba(139,92,246,0.1)' }}
         >
           <NeuralCanvas />
           <div className="relative z-10 flex items-start justify-between mb-3">
             <div>
               <p className="text-sm font-semibold text-slate-200">Predictive Maintenance Forecaster</p>
               <p className="text-[10px] text-slate-500 mt-0.5">
-                Linear regression on health_score · 15-step extrapolation · threshold = {MAINT_THRESHOLD}
+                Linear regression on health_score · 15-step extrapolation
               </p>
             </div>
             <div className="text-right flex-shrink-0 ml-3">
@@ -276,8 +321,8 @@ export default function AIPrediction() {
               </p>
             </div>
           </div>
-          <div className="flex-1 w-full min-h-[300px] relative z-10">
-            <ResponsiveContainer width="100%" height={400}>
+          <div className="flex-1 w-full relative z-10">
+            <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 8, left: -15, bottom: 0 }}>
                 <defs>
                   <linearGradient id="healthGrad" x1="0" y1="0" x2="0" y2="1">
@@ -310,116 +355,100 @@ export default function AIPrediction() {
           </div>
         </div>
 
-        {/* Structural Resonance Radar */}
+        {/* Panel A: Enhanced "Anomaly Confidence Matrix" */}
         <div
-          className="glass-card w-full lg:w-72 flex-shrink-0 p-4 flex flex-col"
-          style={{ borderColor: '#1E3A5F', boxShadow: '0 0 16px rgba(59,130,246,0.10)' }}
-        >
-          <p className="text-sm font-semibold text-slate-200 mb-0.5">Structural Resonance Radar</p>
-          <p className="text-[10px] text-slate-500 mb-2">
-            Live values <span className="text-blue-400">●</span> vs safe-zone <span className="text-emerald-500">●</span> (0–100)
-          </p>
-          <div className="flex-1 w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height={400}>
-              <RadarChart data={radarData} margin={{ top: 4, right: 18, left: 18, bottom: 0 }}>
-                <PolarGrid stroke="#1F2937" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#6B7280', fontSize: 9 }} />
-                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar name="Safe Zone" dataKey="safe"
-                  stroke="#10B981" fill="#10B981" fillOpacity={0.07}
-                  strokeWidth={1} strokeDasharray="4 3"
-                />
-                <Radar name="Live"     dataKey="live"
-                  stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.22}
-                  strokeWidth={2}
-                  style={{ filter: 'drop-shadow(0 0 5px rgba(59,130,246,0.55))' }}
-                />
-                <Tooltip content={<RadarTip />} />
-                <Legend wrapperStyle={{ fontSize: 10, color: '#6B7280' }} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 2: Confidence Matrix + Engineering Report ── */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
-
-        {/* Anomaly Confidence Matrix */}
-        <div
-          className="glass-card w-full lg:w-60 flex-shrink-0 p-4 flex flex-col"
+          className="glass-card p-5 flex flex-col min-w-[250px] min-h-[400px] fade-up stagger-2"
           style={{
-            borderColor: bStatus === 'critical' ? '#7F1D1D' : bStatus === 'warning' ? '#78350F' : '#1F2937',
-            boxShadow:   bStatus === 'critical' ? '0 0 20px rgba(239,68,68,0.16)' : bStatus === 'warning' ? '0 0 16px rgba(245,158,11,0.10)' : 'none',
+            borderColor: isAnomaly ? '#7F1D1D' : isIrregular ? '#78350F' : 'rgba(255,255,255,0.05)',
+            boxShadow:   isAnomaly ? '0 0 30px rgba(239,68,68,0.2)' : isIrregular ? '0 0 20px rgba(245,158,11,0.15)' : 'none',
           }}
         >
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Anomaly Confidence Matrix</p>
-
-          {/* Confidence ring */}
-          <div className="flex flex-col items-center mb-3">
-            <div className="relative w-28 h-28">
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-6">Live AI Anomaly Radar</p>
+          
+          <div className="flex-1 flex flex-col items-center justify-center mb-4">
+            <div className="relative w-40 h-40">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#1F2937" strokeWidth="10" />
                 <circle cx="50" cy="50" r="40" fill="none"
-                  stroke={statusColor(bStatus)} strokeWidth="10" strokeLinecap="round"
-                  strokeDasharray={`${(confidence / 100) * 251.2} 251.2`}
-                  style={{ transition: 'stroke-dasharray 0.8s ease', filter: `drop-shadow(0 0 6px ${statusColor(bStatus)}80)` }}
+                  stroke={confColor} strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={`${(anomalyConfidence / 100) * 251.2} 251.2`}
+                  style={{ transition: 'stroke-dasharray 0.8s ease', filter: `drop-shadow(0 0 6px ${confColor}80)` }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="num text-2xl font-bold" style={{ color: statusColor(bStatus) }}>{confidence}</span>
-                <span className="text-[9px] text-slate-500 tracking-wider">% CONF.</span>
+                <span className="num text-4xl font-bold" style={{ color: confColor }}>{anomalyConfidence}</span>
+                <span className="text-[10px] text-slate-500 tracking-wider">% CONF.</span>
               </div>
             </div>
-            <p className="num text-xs font-bold mt-1.5 uppercase tracking-wide" style={{ color: statusColor(bStatus) }}>
-              {bStatus === 'critical' ? '⚡ Anomaly Detected'
-                : bStatus === 'warning' ? '⚠ Monitor Closely'
-                : '✓ Nominal'}
+            <p className="num text-sm font-bold mt-4 uppercase tracking-wider text-center" style={{ color: confColor }}>
+              {confText}
             </p>
           </div>
 
-          {/* Triggers */}
-          <div className="flex-1 overflow-y-auto space-y-1.5 mb-3">
-            <p className="text-[9px] text-slate-600 uppercase tracking-widest mb-1.5">Active Triggers</p>
-            {reasons.length === 0 ? (
-              <p className="text-emerald-500 text-[11px] flex items-center gap-1.5">
-                <CheckCircle size={10} /> All thresholds clear
-              </p>
-            ) : reasons.map((r, i) => (
-              <p key={i} className="text-red-400 text-[10px] flex items-start gap-1.5 leading-tight">
-                <AlertTriangle size={9} className="flex-shrink-0 mt-0.5" /> {r}
-              </p>
-            ))}
-          </div>
-
-          {/* Node status */}
-          <div className="border-t border-gray-800 pt-2.5 space-y-1.5 text-[10px]">
-            {[
-              ['Base', baseOnline, alerts?.base_status ?? 'normal'],
-              ['Top',  topOnline,  alerts?.top_status  ?? 'normal'],
-            ].map(([label, online, stat]) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="text-slate-500">{label} Node</span>
-                <span style={{ color: online ? statusColor(stat) : '#EF4444' }} className="flex items-center gap-1">
-                  {online ? <CheckCircle size={9} /> : <AlertTriangle size={9} />}
-                  {online ? stat.toUpperCase() : 'OFFLINE'}
-                </span>
-              </div>
-            ))}
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Health Score</span>
-              <span className="num font-bold" style={{ color: statusColor(bStatus) }}>{health} / 100</span>
-            </div>
+          <div className="mt-auto border-t border-gray-800 pt-3 text-[10px] text-slate-500 text-center leading-relaxed">
+            Model: Client-Side Anomaly Isolation<br/>
+            Data Source: Live MPU6050 Telemetry Buffer
           </div>
         </div>
 
-        {/* Live AI Insights */}
+        {/* Panel B: Accurate "Structural Resonance Radar" */}
         <div
-          className="glass-card flex-1 p-4 flex flex-col"
-          style={{ borderColor: '#1F2937', boxShadow: '0 0 16px rgba(139,92,246,0.08)' }}
+          className="glass-card p-5 flex flex-col min-w-[250px] min-h-[400px] fade-up stagger-3"
+          style={{ borderColor: 'rgba(59,130,246,0.2)', boxShadow: '0 0 20px rgba(59,130,246,0.1)' }}
         >
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={13} className="text-violet-400" />
+          <p className="text-sm font-semibold text-slate-200 mb-0.5">Structural Resonance Radar</p>
+          <p className="text-[10px] text-slate-500 mb-6">Top-to-Base Vibration Amplification</p>
+          
+          <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden">
+             {/* Radar Rings (Subtle Grid) */}
+             <div className="absolute w-[80%] aspect-square rounded-full border border-slate-700/40" style={{ backgroundColor: `${ratioColor}1A` }} />
+             <div className="absolute w-[50%] aspect-square rounded-full border border-slate-700/40" style={{ backgroundColor: `${ratioColor}1A` }} />
+             <div className="absolute w-[20%] aspect-square rounded-full border border-slate-700/40" style={{ backgroundColor: `${ratioColor}1A` }} />
+             
+             {/* Concentric Threshold Rings */}
+             <div className="absolute w-[50%] aspect-square rounded-full border border-emerald-500/20 border-dashed" /> {/* 1.0x Boundary */}
+             <div className="absolute w-[80%] aspect-square rounded-full border border-red-500/20 border-dashed" /> {/* 1.5x Boundary */}
+
+             {/* Crosshairs */}
+             <div className="absolute top-0 bottom-0 left-1/2 w-px bg-slate-700/40" />
+             <div className="absolute left-0 right-0 top-1/2 h-px bg-slate-700/40" />
+
+             {/* Sweep gradient (Underneath Dot) */}
+             <div className="absolute w-[80%] aspect-square rounded-full overflow-hidden">
+                <div className="w-full h-full origin-center animate-sweep" style={{
+                    background: `conic-gradient(from 180deg at 50% 50%, transparent 270deg, ${ratioColor}80 360deg)`
+                }} />
+             </div>
+
+             {/* Structural Focus Point + HUD */}
+             <div className="absolute z-10 transition-transform duration-700 flex items-center justify-center pointer-events-none"
+                  style={{ transform: `translate(${shift}px, -${shift/1.5}px)` }}>
+                {/* The Dot */}
+                <div className="relative w-5 h-5 rounded-full flex items-center justify-center"
+                     style={{ backgroundColor: ratioColor, boxShadow: `0 0 15px ${ratioColor}` }}>
+                   {isCritRatio && <div className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: ratioColor }} />}
+                </div>
+                {/* HUD Label */}
+                <div className="absolute left-6 px-1.5 py-0.5 rounded bg-slate-900/80 border text-[10px] font-bold tracking-widest leading-none flex items-center shadow-lg"
+                     style={{ borderColor: `${ratioColor}40`, color: ratioColor }}>
+                   {ratio.toFixed(2)}x
+                </div>
+             </div>
+          </div>
+          
+          <div className="mt-6 flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+            <span className="text-xs text-slate-400 uppercase tracking-widest">Current Ratio</span>
+            <span className="num font-bold text-xl" style={{ color: ratioColor }}>{ratio.toFixed(2)}x</span>
+          </div>
+        </div>
+
+        {/* Panel C: Improved "AI Insight" */}
+        <div
+          className="glass-card xl:col-span-2 p-5 flex flex-col h-full overflow-hidden min-w-[250px] min-h-[300px] fade-up stagger-4"
+          style={{ borderColor: 'rgba(255,255,255,0.05)', boxShadow: '0 0 20px rgba(139,92,246,0.05)' }}
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Shield size={14} className="text-violet-400" />
             <p className="text-sm font-semibold text-slate-200">Live AI Insights</p>
             <span className="text-[9px] text-violet-400 border border-violet-500/30 bg-violet-500/5
                              px-1.5 py-0.5 rounded tracking-widest ml-1">
@@ -427,28 +456,40 @@ export default function AIPrediction() {
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2.5 min-h-0">
-            {report.map((line, i) => {
-              const cfg =
-                line.t === 'crit' ? { bg: 'bg-red-500/5',    border: 'border-red-500/25',    text: 'text-red-300',    Icon: AlertTriangle } :
-                line.t === 'warn' ? { bg: 'bg-amber-500/5',  border: 'border-amber-500/20',  text: 'text-amber-200',  Icon: Activity } :
-                                    { bg: 'bg-emerald-500/5', border: 'border-emerald-500/20', text: 'text-emerald-300', Icon: CheckCircle };
-              return (
-                <div key={i} className={`flex gap-2.5 p-3 rounded-xl text-xs leading-relaxed border ${cfg.bg} ${cfg.border} ${cfg.text}`}>
-                  <cfg.Icon size={12} className="flex-shrink-0 mt-0.5" />
-                  <span>{line.txt}</span>
-                </div>
-              );
-            })}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+            <div className="flex flex-col justify-center items-center text-center space-y-4">
+              <h3 className="text-3xl lg:text-4xl font-black uppercase tracking-wider transition-colors duration-500" style={{ color: insightColor }}>
+                {insightTitle}
+              </h3>
+              <p className="text-sm lg:text-base text-slate-300 max-w-lg leading-relaxed">
+                {insightBody}
+              </p>
+            </div>
+          </div>
+
+          {/* Node status summary */}
+          <div className="border-t border-gray-800 pt-4 mt-auto mb-4 flex justify-around text-xs uppercase tracking-wider text-slate-500">
+             <div className="flex flex-col items-center gap-1">
+                <span>Base Node</span>
+                <span className="font-bold" style={{ color: baseOnline ? statusColor(alerts?.base_status) : '#EF4444' }}>{baseOnline ? 'ONLINE' : 'OFFLINE'}</span>
+             </div>
+             <div className="flex flex-col items-center gap-1">
+                <span>Top Node</span>
+                <span className="font-bold" style={{ color: topOnline ? statusColor(alerts?.top_status) : '#EF4444' }}>{topOnline ? 'ONLINE' : 'OFFLINE'}</span>
+             </div>
+             <div className="flex flex-col items-center gap-1">
+                <span>System Health</span>
+                <span className="num font-bold" style={{ color: statusColor(alerts?.building_status) }}>{health}/100</span>
+             </div>
           </div>
 
           {/* Spike event log */}
           {alertHistory.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-800">
+            <div className="mt-2 pt-3 border-t border-gray-800">
               <p className="text-[9px] text-slate-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <Zap size={9} /> Spike Event Log (session)
               </p>
-              <div className="space-y-1.5 max-h-20 overflow-y-auto">
+              <div className="space-y-1.5 max-h-24 overflow-y-auto pr-2">
                 {alertHistory.slice(0, 6).map((a) => (
                   <div key={a.id} className="flex items-start gap-2 text-[10px]">
                     <span className="text-slate-600 font-mono flex-shrink-0">{a.ts}</span>
@@ -459,6 +500,7 @@ export default function AIPrediction() {
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

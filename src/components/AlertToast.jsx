@@ -7,9 +7,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AlertToast() {
   const { data, pushAlert } = useApp();
   const [toasts, setToasts] = useState([]);
+  const isInitialRender = useRef(true);
   const prevStatus = useRef('normal');
   const prevBaseAlert = useRef(false);
-  const prevTopAlert  = useRef(false);
+  const prevTopAlert = useRef(false);
+  const prevRatioAlert = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { isInitialRender.current = false; }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const addToast = (msg) => {
     const id = Date.now() + Math.random();
@@ -21,7 +28,7 @@ export default function AlertToast() {
   // Watch building_status for CRITICAL
   useEffect(() => {
     const status = data?.alerts?.building_status ?? 'normal';
-    if (status === 'critical' && prevStatus.current !== 'critical') {
+    if (!isInitialRender.current && status === 'critical' && prevStatus.current !== 'critical') {
       addToast('⚠️ CRITICAL ALERT: Building status elevated to CRITICAL by AI system!');
     }
     prevStatus.current = status;
@@ -30,7 +37,7 @@ export default function AlertToast() {
   // Watch per-node alert flags
   useEffect(() => {
     const bAlert = data?.base?.alert;
-    if (bAlert && !prevBaseAlert.current) {
+    if (!isInitialRender.current && bAlert && !prevBaseAlert.current) {
       addToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Base Node!');
     }
     prevBaseAlert.current = bAlert;
@@ -38,11 +45,19 @@ export default function AlertToast() {
 
   useEffect(() => {
     const tAlert = data?.top?.alert;
-    if (tAlert && !prevTopAlert.current) {
+    if (!isInitialRender.current && tAlert && !prevTopAlert.current) {
       addToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Top Node!');
     }
     prevTopAlert.current = tAlert;
   }, [data?.top?.alert]);
+
+  useEffect(() => {
+    const rAlert = data?.diff?.ratio_alert;
+    if (!isInitialRender.current && rAlert && !prevRatioAlert.current) {
+      addToast('⚠️ RESONANCE ALERT: High Vibration Amplification Ratio Detected!');
+    }
+    prevRatioAlert.current = rAlert;
+  }, [data?.diff?.ratio_alert]);
 
   const dismiss = (id) => setToasts((p) => p.filter((t) => t.id !== id));
 

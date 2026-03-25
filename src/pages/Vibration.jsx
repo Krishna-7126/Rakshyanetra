@@ -78,11 +78,11 @@ export default function Vibration() {
         {[
           {
             label: 'Base vib_rms', color: '#10B981', offline: !baseOnline,
-            val: (!baseOnline ? 0 : (base?.vib_rms ?? 0)).toFixed(4),
+            val: (base?.vib_rms ?? 0).toFixed(4),
           },
           {
             label: 'Top vib_rms',  color: '#3B82F6', offline: !topOnline,
-            val: (!topOnline ? 0 : (top?.vib_rms ?? 0)).toFixed(4),
+            val: (top?.vib_rms ?? 0).toFixed(4),
           },
           {
             label: 'vib_ratio (Base/Top)',

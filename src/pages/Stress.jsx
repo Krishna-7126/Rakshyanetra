@@ -45,7 +45,7 @@ export default function Stress() {
     }
   }, [base?.ts, baseOnline]);
 
-  const dispStress = baseOnline ? (base?.stress_proxy ?? 0) : 0;
+  const dispStress = base?.stress_proxy ?? 0;
 
   return (
     <div className="flex flex-col gap-4 h-full">

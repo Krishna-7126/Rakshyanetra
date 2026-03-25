@@ -47,9 +47,9 @@ export default function Tilt() {
     }
   }, [top?.ts, topOnline]);
 
-  // Zero metric cards when top node is offline
-  const dispTiltX = topOnline ? (top?.tilt_x ?? 0) : 0;
-  const dispTiltY = topOnline ? (top?.tilt_y ?? 0) : 0;
+  // Metric cards now trust AppContext sanitization
+  const dispTiltX = top?.tilt_x ?? 0;
+  const dispTiltY = top?.tilt_y ?? 0;
 
   return (
     <div className="flex flex-col gap-4 h-full">
