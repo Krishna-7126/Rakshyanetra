@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary:    #0B0F19;
+  --bg-card:       #111827;
+  --bg-panel:      #0D1117;
+  --accent-green:  #10B981;
+  --accent-blue:   #3B82F6;
+  --accent-red:    #EF4444;
+  --accent-yellow: #F59E0B;
+  --accent-cyan:   #06B6D4;
+  --border-dim:    #1F2937;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--bg-primary);
+  color: #E2E8F0;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+/* ── Glass card ── */
+.glass-card {
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid #1F2937;
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+}
+
+/* ── Numeric readouts use Rajdhani ── */
+.num {
+  font-family: 'Rajdhani', monospace;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ── Glow utilities ── */
+.glow-green  { box-shadow: 0 0 14px rgba(16,185,129,0.30); }
+.glow-blue   { box-shadow: 0 0 14px rgba(59,130,246,0.30); }
+.glow-red    { box-shadow: 0 0 14px rgba(239,68,68,0.30);  }
+.glow-yellow { box-shadow: 0 0 14px rgba(245,158,11,0.25); }
+
+/* ── Neon text ── */
+.text-neon-green  { color: var(--accent-green); }
+.text-neon-blue   { color: var(--accent-blue);  }
+.text-neon-red    { color: var(--accent-red);   }
+.text-neon-yellow { color: var(--accent-yellow);}
+
+/* ── Scanline overlay ── */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Alert blink ── */
+@keyframes criticalBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.critical-blink { animation: criticalBlink 0.8s ease-in-out infinite; }
+
+/* ── Pulse dot ── */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+.pulse-dot { animation: pulseDot 1.5s ease-in-out infinite; }
