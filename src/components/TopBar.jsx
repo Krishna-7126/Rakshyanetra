@@ -1,7 +1,8 @@
 // src/components/TopBar.jsx
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Wifi, WifiOff, Radio } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Wifi, WifiOff, Radio, LogOut } from 'lucide-react';
 
 // ── Inline SVG logo — shield + buildings, neon cyan/blue ──────
 function RakshyanetraLogo({ size = 32 }) {
@@ -50,6 +51,7 @@ function RakshyanetraLogo({ size = 32 }) {
 
 export default function TopBar() {
   const { connected } = useApp();
+  const { logout } = useAuth();
   const [time, setTime] = useState('');
   const [online, setOnline] = useState(navigator.onLine);
 
@@ -120,6 +122,16 @@ export default function TopBar() {
             {online ? 'ONLINE' : 'OFFLINE'}
           </span>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors"
+          title="Logout"
+        >
+          <LogOut size={12} />
+          <span className="text-[10px] font-semibold tracking-widest">LOGOUT</span>
+        </button>
 
         {/* Clock */}
         <div
