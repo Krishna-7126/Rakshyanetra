@@ -1,5 +1,5 @@
 // src/components/AlertToast.jsx
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { AlertTriangle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,46 +18,50 @@ export default function AlertToast() {
     return () => clearTimeout(timer);
   }, []);
 
-  const addToast = (msg) => {
+  const addToast = useCallback((msg) => {
     const id = Date.now() + Math.random();
     setToasts((p) => [...p, { id, msg }]);
     pushAlert(msg);
     setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 8000);
-  };
+  }, [pushAlert]);
+
+  const scheduleToast = useCallback((msg) => {
+    setTimeout(() => addToast(msg), 0);
+  }, [addToast]);
 
   // Watch building_status for CRITICAL
   useEffect(() => {
     const status = data?.alerts?.building_status ?? 'normal';
     if (!isInitialRender.current && status === 'critical' && prevStatus.current !== 'critical') {
-      addToast('⚠️ CRITICAL ALERT: Building status elevated to CRITICAL by AI system!');
+      scheduleToast('⚠️ CRITICAL ALERT: Building status elevated to CRITICAL by AI system!');
     }
     prevStatus.current = status;
-  }, [data?.alerts?.building_status]);
+  }, [data?.alerts?.building_status, scheduleToast]);
 
   // Watch per-node alert flags
   useEffect(() => {
     const bAlert = data?.base?.alert;
     if (!isInitialRender.current && bAlert && !prevBaseAlert.current) {
-      addToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Base Node!');
+      scheduleToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Base Node!');
     }
     prevBaseAlert.current = bAlert;
-  }, [data?.base?.alert]);
+  }, [data?.base?.alert, scheduleToast]);
 
   useEffect(() => {
     const tAlert = data?.top?.alert;
     if (!isInitialRender.current && tAlert && !prevTopAlert.current) {
-      addToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Top Node!');
+      scheduleToast('⚠️ CRITICAL ALERT: Sudden Structural Anomaly Detected at Top Node!');
     }
     prevTopAlert.current = tAlert;
-  }, [data?.top?.alert]);
+  }, [data?.top?.alert, scheduleToast]);
 
   useEffect(() => {
     const rAlert = data?.diff?.ratio_alert;
     if (!isInitialRender.current && rAlert && !prevRatioAlert.current) {
-      addToast('⚠️ RESONANCE ALERT: High Vibration Amplification Ratio Detected!');
+      scheduleToast('⚠️ RESONANCE ALERT: High Vibration Amplification Ratio Detected!');
     }
     prevRatioAlert.current = rAlert;
-  }, [data?.diff?.ratio_alert]);
+  }, [data?.diff?.ratio_alert, scheduleToast]);
 
   const dismiss = (id) => setToasts((p) => p.filter((t) => t.id !== id));
 

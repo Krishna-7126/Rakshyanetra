@@ -1,29 +1,20 @@
 // src/pages/Analytics.jsx
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { db } from '../firebase';
 import { ref, onValue, off } from 'firebase/database';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
 import { BarChart2, RefreshCw, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const BASE_HIST_PATH = 'buildings/building_01/sensors/base/history';
 const TOP_HIST_PATH  = 'buildings/building_01/sensors/top/history';
-
-const ChartTip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="glass-card px-3 py-2 text-xs min-w-[160px]">
-      <p className="text-slate-400 mb-1.5">{label}</p>
-      {payload.map((p) => (
-        <p key={p.name} style={{ color: p.color }} className="num flex justify-between gap-4">
-          <span>{p.name}</span><span>{(p.value ?? 0).toFixed(4)} g</span>
-        </p>
-      ))}
-    </div>
-  );
-};
 
 function tsToTime(ts) {
   if (!ts) return '—';
@@ -100,97 +91,138 @@ export default function Analytics() {
   const avgBaseRMS  = merged.reduce((s, r) => s + (r['Base RMS'] ?? 0), 0) / Math.max(merged.length, 1);
   const avgTopRMS   = merged.reduce((s, r) => s + (r['Top RMS']  ?? 0), 0) / Math.max(merged.length, 1);
 
-  return (
-    <div className="flex flex-col gap-4 h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BarChart2 size={18} className="text-blue-400" />
-          <h2 className="text-lg font-semibold text-slate-200">Historical Analytics</h2>
-          <span className="text-xs text-slate-500 ml-2">ESP32 ring buffer · /history/s[0-49]</span>
-        </div>
-        {lastFetch && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Clock size={12} />
-            Last sync: {lastFetch}
-          </div>
-        )}
-      </div>
+  const handleRefresh = async () => {
+    window.location.reload();
+  };
 
-      {/* Summary cards */}
+  return (
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={handleRefresh} />
+
+      {/* Summary Stats Grid */}
       {merged.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'History Slots',  val: merged.length,            color: '#3B82F6' },
-            { label: 'Avg Base RMS',   val: avgBaseRMS.toFixed(4)+' g', color: '#10B981' },
-            { label: 'Avg Top RMS',    val: avgTopRMS.toFixed(4)+' g',  color: '#3B82F6' },
-            { label: 'Alert Events',   val: merged.filter(r=>r.baseAlert||r.topAlert).length,
-              color: anyAlert ? '#EF4444' : '#10B981' },
-          ].map(({ label, val, color }) => (
-            <div key={label} className="glass-card p-4">
-              <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-              <p className="num text-xl" style={{ color }}>{val}</p>
-            </div>
-          ))}
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          <StatCardEnhanced
+            icon={BarChart2}
+            label="History Slots"
+            value={merged.length}
+            theme="blue"
+          />
+          <StatCardEnhanced
+            icon={CheckCircle}
+            label="Avg Base RMS"
+            value={avgBaseRMS.toFixed(4)}
+            unit="g"
+            theme="emerald"
+          />
+          <StatCardEnhanced
+            icon={CheckCircle}
+            label="Avg Top RMS"
+            value={avgTopRMS.toFixed(4)}
+            unit="g"
+            theme="blue"
+          />
+          <StatCardEnhanced
+            icon={AlertTriangle}
+            label="Alert Events"
+            value={merged.filter(r => r.baseAlert || r.topAlert).length}
+            status={anyAlert ? 'critical' : 'normal'}
+            theme={anyAlert ? 'red' : 'emerald'}
+          />
+        </motion.div>
       )}
 
-      {/* Area Chart */}
-      <div className="glass-card p-5 flex flex-col" style={{ height: 280 }}>
-        <p className="text-sm font-semibold text-slate-300 mb-3">
-          Historical vib_rms — Base vs Top ({merged.length} pts)
-        </p>
+      <SectionDivider title="Historical Data" icon={BarChart2} />
 
+      {/* Area Chart */}
+      <ChartContainer
+        title="Historical vib_rms Analysis"
+        description="Base vs Top sensor readings from ESP32 ring buffer"
+        footer={`Total: ${merged.length} measurements • Last sync: ${lastFetch || 'N/A'}`}
+        fullWidth
+      >
         {loading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <RefreshCw size={20} className="text-slate-600 animate-spin" />
-            <span className="text-slate-600 ml-2 text-sm">Loading ring buffer…</span>
+          <div className="h-80 flex items-center justify-center">
+            <RefreshCw size={20} className="text-slate-600 animate-spin mr-2" />
+            <span className="text-slate-600 text-sm">Loading ring buffer…</span>
           </div>
         ) : error ? (
-          <div className="flex-1 flex items-center justify-center text-red-400 text-sm gap-2">
+          <div className="h-80 flex items-center justify-center text-red-400 gap-2">
             <AlertTriangle size={16} /> {error}
           </div>
         ) : merged.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-2">
-            <p className="text-sm">No history data at /history/s[0-49] yet.</p>
-            <p className="text-xs">ESP32 will populate this buffer once it starts sending.</p>
+          <div className="h-80 flex flex-col items-center justify-center text-slate-600 gap-2">
+            <p className="text-sm">No history data available yet.</p>
+            <p className="text-xs">ESP32 will populate the buffer once data transmission begins.</p>
           </div>
         ) : (
-          <div className="flex-1 w-full min-h-[300px]">
-            <ResponsiveContainer width="100%" height={400}>
+          <div className="h-80 w-full">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={merged} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="baseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#10B981" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}   />
+                  <linearGradient id="baseHistGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.05} />
                   </linearGradient>
-                  <linearGradient id="topGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3B82F6" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}   />
+                  <linearGradient id="topHistGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-                <XAxis dataKey="time" tick={{ fill: '#4B5563', fontSize: 10 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#4B5563', fontSize: 10 }} />
-                <Tooltip content={<ChartTip />} />
-                <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+                <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload?.length) {
+                      return (
+                        <div className="glass-card px-3 py-2 text-xs min-w-[160px]">
+                          <p className="text-slate-400 mb-1.5">{label}</p>
+                          {payload.map((p) => (
+                            <p key={p.name} style={{ color: p.color }} className="num flex justify-between gap-4">
+                              <span>{p.name}</span><span>{(p.value ?? 0).toFixed(4)} g</span>
+                            </p>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="line"
+                  formatter={(value) => <span style={{ color: '#9CA3AF', fontSize: '12px' }}>{value}</span>}
+                />
                 <Area type="monotone" dataKey="Base RMS"
-                  stroke="#10B981" strokeWidth={2} fill="url(#baseGrad)"
+                  stroke="#10B981" strokeWidth={2} fill="url(#baseHistGrad)"
                   dot={false} connectNulls isAnimationActive={false} />
                 <Area type="monotone" dataKey="Top RMS"
-                  stroke="#3B82F6" strokeWidth={2} fill="url(#topGrad)"
+                  stroke="#3B82F6" strokeWidth={2} fill="url(#topHistGrad)"
                   dot={false} connectNulls isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
-      </div>
+      </ChartContainer>
+
+      <SectionDivider title="Raw Analytics Log" icon={Clock} />
 
       {/* Data table */}
       {merged.length > 0 && (
-        <div className="glass-card flex flex-col flex-1 min-h-0">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glass-card flex flex-col flex-1 min-h-0"
+        >
           <div className="px-5 py-3 border-b border-gray-800">
-            <p className="text-sm font-semibold text-slate-300">Raw Historical Log</p>
+            <p className="text-sm font-semibold text-slate-300">Historical Measurements</p>
           </div>
           <div className="overflow-auto flex-1">
             <table className="w-full text-xs">
@@ -236,7 +268,7 @@ export default function Analytics() {
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

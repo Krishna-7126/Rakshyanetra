@@ -1,11 +1,15 @@
 // src/pages/AIPrediction.jsx
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, ResponsiveContainer, Legend, ReferenceLine,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
 import {
   Brain, AlertTriangle, CheckCircle, Shield, Activity,
   TrendingDown, TrendingUp, Zap,
@@ -113,46 +117,6 @@ function calcConfidence(base, top, diff) {
   };
 }
 
-// ── Auto engineering report ───────────────────────────────────
-function genReport(base, top, diff, alerts, baseOnline, topOnline) {
-  const lines = [];
-  const status = alerts?.building_status ?? 'normal';
-  const health = alerts?.health_score    ?? 100;
-  const ratio  = diff?.vib_ratio         ?? 0;
-
-  if (!baseOnline && !topOnline)
-    return [{ t: 'crit', txt: 'Both sensor nodes offline. No structural data available. Verify ESP32 power supply and WiFi connectivity.' }];
-  if (!baseOnline)
-    lines.push({ t: 'warn', txt: '⚠ Base Node offline. Foundation monitoring suspended. Top-floor data still available.' });
-  if (!topOnline)
-    lines.push({ t: 'warn', txt: '⚠ Top Node offline. Tilt and upper-floor vibration monitoring suspended.' });
-
-  if (status === 'normal' && health >= 90)
-    lines.push({ t: 'ok', txt: `System nominal. Health index: ${health}/100. Vibrations are within safe environmental parameters. No structural concerns observed.` });
-  
-  if ((base?.vib_rms ?? 0) > 0.60 && baseOnline)
-    lines.push({ t: 'crit', txt: `CRITICAL Base vibration (${base.vib_rms.toFixed(3)}g). Exceeds 0.60g tolerance. Imminent seismic/ground-fault risk.` });
-  else if ((base?.vib_rms ?? 0) > 0.35 && baseOnline)
-    lines.push({ t: 'warn', txt: `Elevated base vibration (${base.vib_rms.toFixed(3)}g > 0.35g threshold). Monitor for sustained excitation.` });
-
-  if (ratio > 1.5 && baseOnline && topOnline)
-    lines.push({ t: 'crit', txt: `RESONANCE ALERT: High Top-to-Base vibration ratio (${ratio.toFixed(2)}x > 1.5x). Immediate dampener inspection recommended.` });
-
-  if (((top?.tilt_x ?? 0) > 3.0 || (top?.tilt_y ?? 0) > 3.0) && topOnline)
-    lines.push({ t: 'crit', txt: `CRITICAL INCLINATION: Tilt exceeding 3.0°. Structural drift detected. Evacuation protocols advised.` });
-
-  if ((base?.sustained || top?.sustained))
-    lines.push({ t: 'crit', txt: 'Sustained alert active from ESP32. Anomalies are not transient.' });
-
-  if (status === 'critical' || health < 70)
-    lines.push({ t: 'crit', txt: `CRITICAL: AI health index dropped to ${health}/100. Immediate intervention required.` });
-
-  if (lines.length === 0)
-    lines.push({ t: 'ok', txt: `Health score ${health}/100. All parameters within safe envelope. Continue standard monitoring.` });
-  
-  return lines;
-}
-
 // ── Chart tooltips ────────────────────────────────────────────
 const HealthTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -223,29 +187,13 @@ export default function AIPrediction() {
     return { chartData: [...histPts, ...futurePts], fc };
   }, [healthHist]);
 
-  // Radar data (normalize to 0-100)
-  const radarData = useMemo(() => {
-    const n = (v, max) => Math.min(Math.round((Math.abs(v) / max) * 100), 100);
-    return [
-      { subject: 'Base Vib',   live: n(baseOnline ? (base?.vib_rms ?? 0)      : 0, 2),    safe: 50, fullMark: 100 },
-      { subject: 'Top Vib',    live: n(topOnline  ? (top?.vib_rms  ?? 0)      : 0, 2),    safe: 50, fullMark: 100 },
-      { subject: 'Tilt X',     live: n(topOnline  ? (top?.tilt_x   ?? 0)      : 0, 30),   safe: 50, fullMark: 100 },
-      { subject: 'Tilt Y',     live: n(topOnline  ? (top?.tilt_y   ?? 0)      : 0, 30),   safe: 50, fullMark: 100 },
-      { subject: 'Stress',     live: n(baseOnline ? (base?.stress_proxy ?? 0) : 0, 0.3),  safe: 50, fullMark: 100 },
-      { subject: 'Diff Ratio', live: n(diff?.vib_ratio ?? 0, 5),                           safe: 50, fullMark: 100 },
-    ];
-  }, [base, top, diff, baseOnline, topOnline]);
-
   // Confidence + report
-  const bStatus  = alerts?.building_status ?? 'normal';
   const health   = alerts?.health_score    ?? 0;
-  const { score: confidence, reasons } = useMemo(() => calcConfidence(base, top, diff), [base, top, diff]);
-  const report   = useMemo(() => genReport(base, top, diff, alerts, baseOnline, topOnline), [base, top, diff, alerts, baseOnline, topOnline]);
+  const { score: confidence } = useMemo(() => calcConfidence(base, top, diff), [base, top, diff]);
 
   const slope = healthHist.length >= 3 ? linReg(healthHist.map(h => h.score)).slope : 0;
 
   // ── UI Logic for Panels ──
-  const isNormal = anomalyConfidence < 50;
   const isIrregular = anomalyConfidence >= 50 && anomalyConfidence <= 75;
   const isAnomaly = anomalyConfidence > 75;
   const confColor = isAnomaly ? '#EF4444' : isIrregular ? '#F59E0B' : '#10B981';
@@ -276,7 +224,10 @@ export default function AIPrediction() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full w-full overflow-y-auto pb-6 fade-up">
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={() => window.location.reload()} />
+
       <style>{`
         @keyframes sweep {
           from { transform: rotate(0deg); }
@@ -294,6 +245,47 @@ export default function AIPrediction() {
           <span className="text-[10px] text-violet-400 font-bold tracking-widest hidden sm:inline">NEURAL ENGINE ACTIVE</span>
         </div>
       </div>
+
+      {/* Key Metrics Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
+        <StatCardEnhanced
+          icon={Brain}
+          label="AI Confidence"
+          value={confidence}
+          unit="%"
+          status={confidence > 75 ? 'critical' : confidence > 50 ? 'warning' : 'normal'}
+          theme="violet"
+        />
+        <StatCardEnhanced
+          icon={TrendingUp}
+          label="Health Score"
+          value={Math.round(health)}
+          unit="/100"
+          status={health > 80 ? 'normal' : health > 50 ? 'warning' : 'critical'}
+          theme={health > 80 ? 'emerald' : health > 50 ? 'amber' : 'red'}
+        />
+        <StatCardEnhanced
+          icon={Zap}
+          label="Vibration Ratio"
+          value={(ratio ?? 0).toFixed(2)}
+          unit="×"
+          status={ratio > 1.5 ? 'critical' : ratio > 1.0 ? 'warning' : 'normal'}
+          theme="amber"
+        />
+        <StatCardEnhanced
+          icon={CheckCircle}
+          label="Forecast"
+          value={slope < 0 ? 'Degrading' : 'Stable'}
+          status={slope < 0 ? 'warning' : 'normal'}
+          theme={slope < 0 ? 'amber' : 'emerald'}
+        />
+      </motion.div>
+
+      <SectionDivider title="Predictive Analysis" icon={Brain} />
 
       {/* ── Component Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 min-h-0">

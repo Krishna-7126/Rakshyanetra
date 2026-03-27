@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,33 +6,37 @@
 
 /* ── CSS Design Tokens ─────────────────────────────────────── */
 :root {
-  --bg-primary:    #030712;
-  --bg-card:       #0a1628;
-  --bg-panel:      #060f1e;
-  --accent-cyan:   #06B6D4;
-  --accent-teal:   #14B8A6;
-  --accent-blue:   #3B82F6;
-  --accent-indigo: #6366F1;
+  --bg-primary:    #071628;
+  --bg-card:       #0d1f36;
+  --bg-panel:      #091a2f;
+  --accent-cyan:   #3e9ad9;
+  --accent-teal:   #2f8899;
+  --accent-blue:   #1a3c78;
+  --accent-indigo: #0f2f63;
   --accent-green:  #10B981;
-  --accent-yellow: #F59E0B;
+  --accent-yellow: #EC7D1D;
   --accent-red:    #EF4444;
-  --accent-violet: #8B5CF6;
-  --border-cyan:   rgba(6,182,212,0.2);
-  --glow-cyan:     rgba(6,182,212,0.25);
-  --glow-blue:     rgba(59,130,246,0.2);
+  --accent-violet: #5c81ad;
+  --border-cyan:   rgba(106,143,191,0.3);
+  --glow-cyan:     rgba(106,143,191,0.22);
+  --glow-blue:     rgba(26,60,120,0.25);
+  --brand-orange:  #ec7d1d;
+  --brand-blue:    #1a3c78;
+  --brand-blue-soft: #6a8fbf;
+  --brand-deep:    #071628;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
   height: 100%;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Manrope', sans-serif;
   color: #E2E8F0;
   background:
-    radial-gradient(circle at 10% 10%, rgba(6,182,212,0.15) 0%, transparent 40%),
-    radial-gradient(circle at 90% 90%, rgba(139,92,246,0.15) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(59,130,246,0.1) 0%, transparent 60%),
-    linear-gradient(180deg, #020617 0%, #081121 40%, #040914 100%);
+    radial-gradient(circle at 8% 8%, rgba(236,125,29,0.12) 0%, transparent 42%),
+    radial-gradient(circle at 82% 70%, rgba(106,143,191,0.18) 0%, transparent 42%),
+    radial-gradient(circle at 45% 45%, rgba(26,60,120,0.14) 0%, transparent 62%),
+    linear-gradient(180deg, #071628 0%, #091a2f 46%, #05111f 100%);
   background-attachment: fixed;
 }
 
@@ -79,7 +83,7 @@ html, body, #root {
 
 /* ── Rajdhani for all numeric readouts ──────────────────────── */
 .num {
-  font-family: 'Rajdhani', monospace;
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 600;
   letter-spacing: 0.04em;
 }
@@ -123,9 +127,9 @@ html, body, #root {
   position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(6,182,212,0.5) 20%,
-    rgba(59,130,246,0.6) 50%,
-    rgba(6,182,212,0.5) 80%,
+    rgba(236,125,29,0.45) 18%,
+    rgba(26,60,120,0.55) 50%,
+    rgba(106,143,191,0.45) 82%,
     transparent 100%
   );
 }
@@ -136,9 +140,9 @@ html, body, #root {
   position: absolute; top: 0; right: 0; bottom: 0; width: 1px;
   background: linear-gradient(180deg,
     transparent 0%,
-    rgba(6,182,212,0.40) 25%,
-    rgba(99,102,241,0.35) 60%,
-    rgba(6,182,212,0.25) 85%,
+    rgba(106,143,191,0.35) 22%,
+    rgba(26,60,120,0.4) 56%,
+    rgba(236,125,29,0.2) 84%,
     transparent 100%
   );
 }
@@ -185,4 +189,31 @@ html, body, #root {
   );
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
+}
+
+.brand-wordmark {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  color: #f8fbff;
+}
+
+.login-hero-title {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.text-brand-orange { color: var(--brand-orange); }
+.text-brand-blue-soft { color: var(--brand-blue-soft); }
+.bg-brand-deep { background-color: var(--brand-deep); }
+.bg-brand-blue\/20 { background-color: rgba(26,60,120,0.2); }
+.bg-brand-orange\/15 { background-color: rgba(236,125,29,0.15); }
+
+.bg-brand-mesh {
+  background:
+    radial-gradient(circle at 12% 20%, rgba(236,125,29,0.15) 0%, transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(106,143,191,0.2) 0%, transparent 42%),
+    radial-gradient(circle at 70% 78%, rgba(26,60,120,0.18) 0%, transparent 45%),
+    linear-gradient(140deg, #071628 0%, #0a1f3a 50%, #071628 100%);
 }
