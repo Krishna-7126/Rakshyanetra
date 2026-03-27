@@ -49,7 +49,7 @@ export default function Tilt() {
       histRef.current = [...histRef.current, pt].slice(-MAX_POINTS);
       setHistory([...histRef.current]);
     }
-  }, [top?.ts, topOnline]);
+  }, [top?.ts, top?.tilt_x, top?.tilt_y, topOnline]);
 
   // Metric cards now trust AppContext sanitization
   const dispTiltX = top?.tilt_x ?? 0;

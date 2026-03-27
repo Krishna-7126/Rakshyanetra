@@ -4,10 +4,10 @@
 import { useEffect, useRef } from 'react';
 
 const COLORS = [
-  'rgba(6,182,212,',    // cyan
-  'rgba(59,130,246,',   // blue
-  'rgba(99,102,241,',   // indigo
-  'rgba(20,184,166,',   // teal
+  'rgba(106,143,191,',
+  'rgba(26,60,120,',
+  'rgba(236,125,29,',
+  'rgba(148,173,205,',
 ];
 
 export default function FloatingParticles() {
@@ -26,14 +26,14 @@ export default function FloatingParticles() {
     window.addEventListener('resize', resize);
 
     // Generate particles
-    const N = 70;
+    const N = 44;
     const particles = Array.from({ length: N }, () => ({
       x:    Math.random() * canvas.width,
       y:    Math.random() * canvas.height,
-      vy:   -(Math.random() * 0.22 + 0.06),   // slowly drift upward
-      vx:   (Math.random() - 0.5) * 0.12,
-      r:    Math.random() * 1.6 + 0.4,
-      a:    Math.random() * 0.5 + 0.15,        // base opacity
+      vy:   -(Math.random() * 0.18 + 0.04),
+      vx:   (Math.random() - 0.5) * 0.08,
+      r:    Math.random() * 1.2 + 0.35,
+      a:    Math.random() * 0.35 + 0.08,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       phase: Math.random() * Math.PI * 2,       // for sine wobble
     }));
@@ -59,11 +59,11 @@ export default function FloatingParticles() {
           const dx   = particles[i].x - particles[j].x;
           const dy   = particles[i].y - particles[j].y;
           const dist = Math.hypot(dx, dy);
-          if (dist < 100) {
-            const alpha = (1 - dist / 100) * 0.09;
+          if (dist < 92) {
+            const alpha = (1 - dist / 92) * 0.06;
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(6,182,212,${alpha})`;
-            ctx.lineWidth = 0.6;
+            ctx.strokeStyle = `rgba(106,143,191,${alpha})`;
+            ctx.lineWidth = 0.45;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();
@@ -99,7 +99,7 @@ export default function FloatingParticles() {
     <canvas
       ref={ref}
       className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0, opacity: 0.65 }}
+      style={{ zIndex: 0, opacity: 0.45 }}
     />
   );
 }

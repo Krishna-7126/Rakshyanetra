@@ -47,7 +47,7 @@ export default function Stress() {
       histRef.current = [...histRef.current, pt].slice(-MAX_POINTS);
       setHistory([...histRef.current]);
     }
-  }, [base?.ts, baseOnline]);
+  }, [base?.ts, base?.stress_proxy, baseOnline]);
 
   const dispStress = base?.stress_proxy ?? 0;
   const isAlert = base?.alert ?? false;

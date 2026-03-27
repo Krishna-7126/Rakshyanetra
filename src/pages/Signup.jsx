@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Eye, EyeOff, Mail, Lock, Shield, AlertCircle, CheckCircle, ArrowLeft, LogIn } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Shield } from 'lucide-react';
 
 export default function Signup() {
   const [email, setEmail] = useState('');

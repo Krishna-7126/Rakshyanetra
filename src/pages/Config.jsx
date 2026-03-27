@@ -7,7 +7,7 @@ import SectionDivider from '../components/SectionDivider';
 import { Settings, Zap, Shield, Clock, RefreshCw } from 'lucide-react';
 
 export default function Config() {
-  const { data, connected, forceRefresh } = useApp();
+  const { connected, forceRefresh } = useApp();
 
   const handleRefresh = async () => {
     await forceRefresh();

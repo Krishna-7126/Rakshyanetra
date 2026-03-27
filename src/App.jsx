@@ -98,10 +98,14 @@ function AuthGate() {
     if (user && ['/', '/login', '/signup'].includes(location.pathname)) {
       if (location.pathname !== '/') navigate('/', { replace: true });
     }
-  }, [user, loading, location.pathname, navigate]);
+  }, [user, loading, location, navigate]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-950">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-deep text-slate-300">
+        <div className="num text-sm tracking-[0.2em] uppercase">Initializing Console...</div>
+      </div>
+    );
   }
 
   return (

@@ -70,11 +70,7 @@ export function AuthProvider({ children }) {
   };
 
   const resetPassword = async (email) => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error) {
-      throw error;
-    }
+    await sendPasswordResetEmail(auth, email);
   };
 
   const logout = async () => {

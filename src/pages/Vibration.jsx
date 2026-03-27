@@ -63,9 +63,8 @@ export default function Vibration() {
       histRef.current = [...histRef.current, pt].slice(-MAX_POINTS);
       setHistory([...histRef.current]);
     }
-  }, [base?.ts, top?.ts, baseOnline, topOnline]);
+  }, [base?.ts, top?.ts, base?.vib_rms, top?.vib_rms, baseOnline, topOnline]);
 
-  const bothOffline = !baseOnline && !topOnline;
   const stableRatio = !(diff?.ratio_alert ?? false);
   
   const handleRefresh = async () => {

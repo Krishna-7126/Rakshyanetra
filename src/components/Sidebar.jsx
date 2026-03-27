@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Activity, GitMerge, Layers,
   Brain, BarChart2, Settings, Building2,
 } from 'lucide-react';
+import brandLogo from '../assets/rakshyanetra-brand.svg';
 
 const sensorLinks = [
   { to: '/',          icon: LayoutDashboard, label: 'Overview' },
@@ -40,29 +41,28 @@ function NavItem({ to, icon: Icon, label }) {
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative
          ${isActive
-           ? 'text-cyan-300'
-           : 'text-slate-400 hover:text-slate-200'}`
+           ? 'text-white'
+           : 'text-slate-300 hover:text-white'}`
       }
     >
       {({ isActive }) => (
         <>
-          {/* Active indicator bar */}
           {isActive && (
             <div
               className="absolute inset-0 rounded-xl"
               style={{
-                background: 'linear-gradient(90deg, rgba(6,182,212,0.12), rgba(99,102,241,0.08))',
-                border: '1px solid rgba(6,182,212,0.25)',
-                boxShadow: 'inset 0 1px 0 rgba(6,182,212,0.1)',
+                background: 'linear-gradient(90deg, rgba(26,60,120,0.33), rgba(15,47,99,0.2))',
+                border: '1px solid rgba(106,143,191,0.35)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07)',
               }}
             />
           )}
-          <Icon size={15} className="flex-shrink-0 relative z-10 transition-all group-hover:scale-110" />
+          <Icon size={15} className="flex-shrink-0 relative z-10 transition-all group-hover:scale-110 text-brand-orange" />
           <span className="relative z-10 truncate">{label}</span>
           {isActive && (
             <div
-              className="absolute right-0 top-1.5 bottom-1.5 w-0.5 rounded-full"
-              style={{ background: 'linear-gradient(180deg, #06B6D4, #6366F1)' }}
+              className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full"
+              style={{ background: 'linear-gradient(180deg, #EC7D1D, #1A3C78)' }}
             />
           )}
         </>
@@ -73,8 +73,8 @@ function NavItem({ to, icon: Icon, label }) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-2 px-2 flex items-center gap-2">
-      <span className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(6,182,212,0.3), transparent)' }} />
+    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.16em] mb-2 px-2 flex items-center gap-2">
+      <span className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(106,143,191,0.35), transparent)' }} />
       {children}
     </p>
   );
@@ -94,13 +94,16 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="sidebar-border w-60 flex-shrink-0 flex flex-col py-4 px-3 overflow-y-auto relative z-10"
+      className="sidebar-border w-64 flex-shrink-0 flex flex-col py-4 px-3 overflow-y-auto relative z-10"
       style={{
-        background: 'linear-gradient(180deg, rgba(3,7,18,0.97) 0%, rgba(6,12,24,0.95) 100%)',
+        background: 'linear-gradient(180deg, rgba(8,23,43,0.97) 0%, rgba(5,16,32,0.96) 100%)',
         backdropFilter: 'blur(20px)',
       }}
     >
-      {/* Buildings */}
+      <div className="mb-5 rounded-2xl border border-slate-700/70 bg-slate-900/50 px-3 py-3">
+        <img src={brandLogo} alt="Rakshyanetra" className="h-16 w-auto" />
+      </div>
+
       <div className="mb-5">
         <SectionLabel>Buildings</SectionLabel>
         {blocks.map(({ key, status, live }) => (
@@ -109,15 +112,15 @@ export default function Sidebar() {
             onClick={() => selectBlock(key)}
             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl mb-1
                          transition-all duration-200 text-left relative overflow-hidden
-                         ${activeBlock === key ? '' : 'hover:bg-white/3'}
+                         ${activeBlock === key ? '' : 'hover:bg-white/5'}
                          ${!live ? 'opacity-50 hover:opacity-70' : ''}`}
             style={activeBlock === key ? {
-              background: 'linear-gradient(90deg, rgba(6,182,212,0.10), rgba(99,102,241,0.07))',
-              border: '1px solid rgba(6,182,212,0.22)',
+              background: 'linear-gradient(90deg, rgba(26,60,120,0.3), rgba(15,47,99,0.18))',
+              border: '1px solid rgba(106,143,191,0.32)',
             } : { border: '1px solid transparent' }}
           >
             <div className="flex items-center gap-2">
-              <Building2 size={14} style={{ color: live ? '#06B6D4' : '#475569' }} />
+              <Building2 size={14} style={{ color: live ? '#EC7D1D' : '#64748b' }} />
               <span className={`text-sm font-medium ${live ? 'text-slate-200' : 'text-slate-500'}`}>
                 Block {key}
               </span>
@@ -147,10 +150,10 @@ export default function Sidebar() {
       <div className="mt-auto pt-5">
         <div
           className="h-px mb-3 rounded-full"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(6,182,212,0.25), transparent)' }}
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(236,125,29,0.35), transparent)' }}
         />
-        <p className="text-[9px] text-slate-700 text-center tracking-[0.22em] uppercase">
-          RAKSHYANETRA v1.0 · IND
+        <p className="text-[9px] text-slate-500 text-center tracking-[0.16em] uppercase">
+          Structural Health Intelligence v1.0
         </p>
       </div>
     </aside>

@@ -1,5 +1,5 @@
 // src/pages/Overview.jsx
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
@@ -18,12 +18,8 @@ const MAX_POINTS = 50;
 
 // ── Status helpers ───────────────────────────────────────────────
 const SC = { critical: '#EF4444', warning: '#F59E0B', normal: '#10B981' };
-const GC = { 'SYSTEM OFFLINE': '#EF4444', DEGRADED: '#F59E0B', ONLINE: '#10B981' };
 
 const statusColor  = (s) => SC[s]   ?? SC.normal;
-const globalColor  = (g) => GC[g]   ?? GC.ONLINE;
-const statusText   = (s) => ({ critical: 'text-red-400', warning: 'text-amber-400', normal: 'text-emerald-400' }[s] ?? 'text-emerald-400');
-const globalText   = (g) => ({ 'SYSTEM OFFLINE': 'text-red-400', DEGRADED: 'text-amber-400', ONLINE: 'text-emerald-400' }[g] ?? 'text-emerald-400');
 
 // ── Sub-components ───────────────────────────────────────────────
 // ── Sub-components ───────────────────────────────────────────────
@@ -60,11 +56,10 @@ const ChartTooltip = ({ active, payload, label }) => {
 
 // ── Page ─────────────────────────────────────────────────────────
 export default function Overview() {
-  const { data, baseOnline, topOnline, globalStatus, forceRefresh, anomalyConfidence, vibrationAmplificationRatio } = useApp();
-  const { base, top, diff, alerts } = data;
+  const { data, baseOnline, topOnline, globalStatus, forceRefresh, vibrationAmplificationRatio } = useApp();
+  const { base, top, alerts } = data;
   const [history, setHistory] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const histRef = useRef([]);
   const lastBaseTsRef = useRef(0);
   const lastTopTsRef = useRef(0);
@@ -94,7 +89,7 @@ export default function Overview() {
       histRef.current = [...histRef.current, pt].slice(-MAX_POINTS);
       setHistory([...histRef.current]);
     }
-  }, [base?.ts, top?.ts, baseOnline, topOnline]);
+  }, [base?.ts, top?.ts, base?.vib_rms, top?.vib_rms, baseOnline, topOnline]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -104,32 +99,6 @@ export default function Overview() {
 
   const bStatus = alerts?.building_status ?? 'normal';
   const health  = alerts?.health_score === '---' ? 0 : (alerts?.health_score ?? 100);
-  const bStat   = alerts?.base_status     ?? 'normal';
-  const tStat   = alerts?.top_status      ?? 'normal';
-
-  const calibratedHealthScore = alerts?.health_score === '---' ? 100 : (alerts?.health_score ?? 100);
-  const safeAnomalyConfidence = anomalyConfidence ?? 0;
-
-  const scatterData = useMemo(() => {
-    const data = [];
-    for(let i = 0; i < 30; i++) {
-        data.push({
-            health: parseFloat((85 + Math.random() * 15).toFixed(2)),
-            anomaly: parseFloat((Math.random() * 20).toFixed(2)),
-            type: 'baseline',
-            z: 60
-        });
-    }
-    data.push({
-        health: Number(calibratedHealthScore) || 100,
-        anomaly: safeAnomalyConfidence,
-        type: 'live',
-        z: 400
-    });
-    return data;
-  }, [calibratedHealthScore, safeAnomalyConfidence]);
-  
-  const liveColor = safeAnomalyConfidence > 75 ? '#ef4444' : safeAnomalyConfidence > 50 ? '#eab308' : '#22c55e';
 
   const baseRMS  = base?.vib_rms ?? 0;
   const topRMS   = top?.vib_rms  ?? 0;
@@ -144,13 +113,6 @@ export default function Overview() {
   const isCritRatio = vibAmpRatio > 1.5;
   const isWarnRatio = vibAmpRatio >= 1.0 && vibAmpRatio <= 1.5;
   const ratioColor = isCritRatio ? '#EF4444' : isWarnRatio ? '#F59E0B' : '#10B981';
-  const ratioPct = Math.min(Math.max((vibAmpRatio / 2.0) * 100, 0), 100);
-
-  // Z-Score Modal Scatter math
-  const scatterDist = anomalyConfidence ? (anomalyConfidence / 100) * 45 : 0;
-  const scatterAngle = Math.random() * 360;
-  const dx = Math.cos(scatterAngle * (Math.PI / 180)) * scatterDist;
-  const dy = Math.sin(scatterAngle * (Math.PI / 180)) * scatterDist;
 
   return (
     <div className="flex flex-col gap-6 pb-12">
