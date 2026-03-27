@@ -29,14 +29,14 @@ export default function TopBar() {
 
   return (
     <header
-      className="topbar-border flex-shrink-0 flex items-center justify-between px-4 md:px-6 h-[84px] relative z-40"
+      className="topbar-border flex-shrink-0 flex items-center justify-between px-4 md:px-6 h-[96px] relative z-40"
       style={{
         background: 'linear-gradient(90deg, rgba(5,16,32,0.98) 0%, rgba(8,23,43,0.96) 52%, rgba(5,16,32,0.98) 100%)',
         backdropFilter: 'blur(24px)',
       }}
     >
       <div className="flex items-center flex-shrink-0 min-w-0">
-        <img src={brandLogo} alt="Rakshyanetra" className="h-16 md:h-18 w-auto" />
+        <img src={brandLogo} alt="Rakshyanetra" className="h-[62px] md:h-[72px] w-auto" />
       </div>
 
       <div

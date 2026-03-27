@@ -5,7 +5,6 @@ import {
   LayoutDashboard, Activity, GitMerge, Layers,
   Brain, BarChart2, Settings, Building2,
 } from 'lucide-react';
-import brandLogo from '../assets/rakshyanetra-brand.svg';
 
 const sensorLinks = [
   { to: '/',          icon: LayoutDashboard, label: 'Overview' },
@@ -100,10 +99,6 @@ export default function Sidebar() {
         backdropFilter: 'blur(20px)',
       }}
     >
-      <div className="mb-5 rounded-2xl border border-slate-700/70 bg-slate-900/50 px-3 py-3">
-        <img src={brandLogo} alt="Rakshyanetra" className="h-16 w-auto" />
-      </div>
-
       <div className="mb-5">
         <SectionLabel>Buildings</SectionLabel>
         {blocks.map(({ key, status, live }) => (
