@@ -29,7 +29,7 @@ const pageVariants = {
 };
 function AnimatedPage({ children }) {
   return (
-    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="h-full">
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="w-full">
       {children}
     </motion.div>
   );
@@ -41,7 +41,7 @@ function MainContent() {
 
   if (activeBlock !== 'A') {
     return (
-      <motion.div key={`block-${activeBlock}`} variants={pageVariants} initial="initial" animate="animate" className="h-full">
+      <motion.div key={`block-${activeBlock}`} variants={pageVariants} initial="initial" animate="animate" className="w-full">
         <BlockOfflineState block={activeBlock} />
       </motion.div>
     );
@@ -71,7 +71,7 @@ function AppLayout() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden relative z-10 w-full">
         <Sidebar />
-        <main className="flex-1 min-h-screen w-full overflow-y-auto p-4 relative">
+        <main className="flex-1 w-full overflow-y-auto p-4 relative">
           <AlertToast />
           <MainContent />
         </main>

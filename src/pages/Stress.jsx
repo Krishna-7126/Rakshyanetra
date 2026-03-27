@@ -1,15 +1,19 @@
 // src/pages/Stress.jsx
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   CartesianGrid, ResponsiveContainer,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import OfflineOverlay from '../components/OfflineOverlay';
-import { Layers } from 'lucide-react';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
+import { Layers, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const MAX_POINTS = 50;
-const ChartTip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="glass-card px-3 py-2 text-xs min-w-[140px]">
@@ -46,52 +50,112 @@ export default function Stress() {
   }, [base?.ts, baseOnline]);
 
   const dispStress = base?.stress_proxy ?? 0;
+  const isAlert = base?.alert ?? false;
+  const isSustained = base?.sustained ?? false;
+
+  const handleRefresh = async () => {
+    window.location.reload();
+  };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center gap-2">
-        <Layers size={18} className="text-red-400" />
-        <h2 className="text-lg font-semibold text-slate-200">Structural Stress</h2>
-        <span className="text-xs text-slate-500 ml-2">Base Node — stress_proxy</span>
-      </div>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={handleRefresh} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: 'Stress Proxy', val: dispStress.toFixed(4), color: '#EF4444' },
-          { label: 'Alert Flag',   val: base?.alert     ? 'ACTIVE' : 'CLEAR', color: base?.alert     ? '#EF4444' : '#10B981' },
-          { label: 'Sustained',    val: base?.sustained ? 'YES'   : 'NO',     color: base?.sustained ? '#EF4444' : '#10B981' },
-        ].map(({ label, val, color }) => (
-          <div key={label} className="glass-card p-5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-            <p className="num text-2xl" style={{ color: !baseOnline ? '#6B7280' : color }}>{val}</p>
-            {!baseOnline && <span className="text-[9px] text-red-400 font-bold tracking-widest mt-1 block">BASE NODE OFFLINE</span>}
-          </div>
-        ))}
-      </div>
+      {/* Primary Stats - 3 Column Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        <StatCardEnhanced
+          icon={Layers}
+          label="Stress Proxy"
+          value={dispStress.toFixed(4)}
+          status={!baseOnline ? 'offline' : dispStress > 0.8 ? 'critical' : dispStress > 0.5 ? 'warning' : 'normal'}
+          theme="red"
+        />
+        <StatCardEnhanced
+          icon={isAlert ? AlertTriangle : CheckCircle}
+          label="Alert Flag"
+          value={isAlert ? 'ACTIVE' : 'CLEAR'}
+          status={isAlert ? 'critical' : 'normal'}
+          theme="orange"
+        />
+        <StatCardEnhanced
+          icon={isSustained ? AlertTriangle : CheckCircle}
+          label="Sustained"
+          value={isSustained ? 'YES' : 'NO'}
+          status={isSustained ? 'critical' : 'normal'}
+          theme="amber"
+        />
+      </motion.div>
 
-      <div className="glass-card p-5 flex-1 flex flex-col relative min-h-0">
-        <p className="text-sm font-semibold text-slate-300 mb-3">Stress Proxy History — Base Node</p>
-        <OfflineOverlay nodeLabel="Base" isOffline={!baseOnline} />
-        <div className="flex-1 w-full min-h-[300px]">
-          <ResponsiveContainer width="100%" height={400}>
+      <SectionDivider title="Stress Proxy Trend" icon={Layers} />
+
+      {/* Main Chart Section */}
+      <ChartContainer
+        title="Structural Stress Monitor"
+        description="Base Node stress_proxy over time"
+        footer={`Base Node: ${baseOnline ? '✓ Online' : '✗ Offline'}`}
+        fullWidth
+      >
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={history} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id="stressGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#EF4444" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                <linearGradient id="stressGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#EF4444" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-              <XAxis dataKey="time" tick={{ fill: '#4B5563', fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#4B5563', fontSize: 10 }} />
-              <Tooltip content={<ChartTip />} />
-              <Area type="monotone" dataKey="stress"
-                stroke="#EF4444" strokeWidth={2} fill="url(#stressGrad)"
-                dot={false} isAnimationActive={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+              <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="stress"
+                stroke="#EF4444"
+                strokeWidth={2.5}
+                fill="url(#stressGradient)"
+                dot={false}
+                isAnimationActive={false}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </ChartContainer>
+
+      {/* Status Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        <div className="glass-card p-5 border border-red-500/30 bg-red-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${baseOnline ? 'bg-red-500 animate-pulse' : 'bg-slate-600'}`} />
+            <h3 className="text-sm font-semibold text-red-400">Base Node</h3>
+          </div>
+          <p className="text-xs text-slate-400">
+            {baseOnline ? `✓ Stress: ${dispStress.toFixed(4)}` : '✗ Node Offline'}
+          </p>
+        </div>
+
+        <div className={`glass-card p-5 border ${isAlert ? 'border-red-500/50 bg-red-500/10' : 'border-slate-600 bg-slate-800/30'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${isAlert ? 'bg-red-500 animate-pulse' : 'bg-slate-600'}`} />
+            <h3 className={`text-sm font-semibold ${isAlert ? 'text-red-400' : 'text-slate-400'}`}>
+              {isAlert ? 'Alert Status' : 'System Status'}
+            </h3>
+          </div>
+          <p className={`text-xs ${isAlert ? 'text-red-300' : 'text-slate-400'}`}>
+            {isAlert ? '⚠ Alert condition detected' : '✓ System operating normally'}
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }

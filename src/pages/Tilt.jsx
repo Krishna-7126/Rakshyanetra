@@ -1,15 +1,19 @@
 // src/pages/Tilt.jsx
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import OfflineOverlay from '../components/OfflineOverlay';
-import { GitMerge } from 'lucide-react';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
+import { GitMerge, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const MAX_POINTS = 50;
-const ChartTip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="glass-card px-3 py-2 text-xs min-w-[140px]">
@@ -50,47 +54,111 @@ export default function Tilt() {
   // Metric cards now trust AppContext sanitization
   const dispTiltX = top?.tilt_x ?? 0;
   const dispTiltY = top?.tilt_y ?? 0;
+  const isSustained = top?.sustained ?? false;
+
+  const handleRefresh = async () => {
+    window.location.reload();
+  };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center gap-2">
-        <GitMerge size={18} className="text-amber-400" />
-        <h2 className="text-lg font-semibold text-slate-200">Tilt / Inclination</h2>
-        <span className="text-xs text-slate-500 ml-2">Top Node — tilt_x &amp; tilt_y axes</span>
-      </div>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={handleRefresh} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: 'Tilt X (Roll)',   val: `${dispTiltX.toFixed(2)}°`, color: '#F59E0B' },
-          { label: 'Tilt Y (Pitch)',  val: `${dispTiltY.toFixed(2)}°`, color: '#F97316' },
-          { label: 'Sustained Alert', val: top?.sustained ? 'ACTIVE' : 'CLEAR',
-            color: top?.sustained ? '#EF4444' : '#10B981' },
-        ].map(({ label, val, color }) => (
-          <div key={label} className="glass-card p-5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-            <p className="num text-2xl" style={{ color: !topOnline ? '#6B7280' : color }}>{val}</p>
-            {!topOnline && <span className="text-[9px] text-red-400 font-bold tracking-widest mt-1 block">TOP NODE OFFLINE</span>}
-          </div>
-        ))}
-      </div>
+      {/* Primary Stats - 3 Column Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        <StatCardEnhanced
+          icon={GitMerge}
+          label="Tilt X (Roll)"
+          value={dispTiltX.toFixed(2)}
+          unit="°"
+          status={!topOnline ? 'offline' : dispTiltX > 3.0 ? 'critical' : dispTiltX > 1.5 ? 'warning' : 'normal'}
+          theme="amber"
+        />
+        <StatCardEnhanced
+          icon={GitMerge}
+          label="Tilt Y (Pitch)"
+          value={dispTiltY.toFixed(2)}
+          unit="°"
+          status={!topOnline ? 'offline' : dispTiltY > 3.0 ? 'critical' : dispTiltY > 1.5 ? 'warning' : 'normal'}
+          theme="orange"
+        />
+        <StatCardEnhanced
+          icon={isSustained ? AlertTriangle : CheckCircle}
+          label="Sustained Alert"
+          value={isSustained ? 'ACTIVE' : 'CLEAR'}
+          status={isSustained ? 'critical' : 'normal'}
+          theme="red"
+        />
+      </motion.div>
 
-      <div className="glass-card p-5 flex-1 flex flex-col relative min-h-0">
-        <p className="text-sm font-semibold text-slate-300 mb-3">Inclination History — Top Node</p>
-        <OfflineOverlay nodeLabel="Top" isOffline={!topOnline} />
-        <div className="flex-1 w-full min-h-[300px]">
-          <ResponsiveContainer width="100%" height={400}>
+      <SectionDivider title="Inclination History" icon={GitMerge} />
+
+      {/* Main Chart Section */}
+      <ChartContainer
+        title="Top Node Tilt Angles"
+        description="Real-time inclination monitoring (tilt_x & tilt_y axes)"
+        footer={`Top Node: ${topOnline ? '✓ Online' : '✗ Offline'}`}
+        fullWidth
+      >
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={history} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-              <XAxis dataKey="time" tick={{ fill: '#4B5563', fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#4B5563', fontSize: 10 }} unit="°" />
-              <Tooltip content={<ChartTip />} />
-              <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
-              <Line type="monotone" dataKey="Tilt X" stroke="#F59E0B" strokeWidth={2} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="Tilt Y" stroke="#F97316" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <defs>
+                <linearGradient id="tiltXGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#F59E0B" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="tiltYGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#F97316" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+              <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} label={{ value: 'Angle (°)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="line"
+                formatter={(value) => <span style={{ color: '#9CA3AF', fontSize: '12px' }}>{value}</span>}
+              />
+              <Line type="monotone" dataKey="Tilt X" stroke="#F59E0B" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="Tilt Y" stroke="#F97316" strokeWidth={2.5} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </ChartContainer>
+
+      {/* Status Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="glass-card p-5 border border-slate-600 bg-slate-800/30"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${topOnline ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
+            <div>
+              <h3 className="text-sm font-semibold text-slate-200">Top Node Status</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                {topOnline ? `Connected • X: ${dispTiltX.toFixed(2)}° • Y: ${dispTiltY.toFixed(2)}°` : 'Node Offline'}
+              </p>
+            </div>
+          </div>
+          {isSustained && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30">
+              <AlertTriangle size={14} className="text-red-400" />
+              <span className="text-xs font-semibold text-red-400">Alert Active</span>
+            </div>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 }

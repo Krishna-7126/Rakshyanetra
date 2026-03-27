@@ -1,16 +1,20 @@
 // src/pages/Vibration.jsx
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
-import OfflineOverlay from '../components/OfflineOverlay';
-import { Activity } from 'lucide-react';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
+import { Activity, TrendingUp, AlertTriangle } from 'lucide-react';
 
 const MAX_POINTS = 50;
 
-const ChartTip = ({ active, payload, label }) => {
+const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="glass-card px-3 py-2 text-xs min-w-[150px]">
@@ -62,66 +66,124 @@ export default function Vibration() {
   }, [base?.ts, top?.ts, baseOnline, topOnline]);
 
   const bothOffline = !baseOnline && !topOnline;
+  const stableRatio = !(diff?.ratio_alert ?? false);
+  
+  const handleRefresh = async () => {
+    // Trigger refresh logic if needed
+    window.location.reload();
+  };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center gap-2">
-        <Activity size={18} className="text-emerald-400" />
-        <h2 className="text-lg font-semibold text-slate-200">Vibration Analysis</h2>
-        <span className="text-xs text-slate-500 ml-2">
-          Base RMS vs Top RMS amplitude comparison (vib_rms magnitude)
-        </span>
-      </div>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={handleRefresh} />
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            label: 'Base vib_rms', color: '#10B981', offline: !baseOnline,
-            val: (base?.vib_rms ?? 0).toFixed(4),
-          },
-          {
-            label: 'Top vib_rms',  color: '#3B82F6', offline: !topOnline,
-            val: (top?.vib_rms ?? 0).toFixed(4),
-          },
-          {
-            label: 'vib_ratio (Base/Top)',
-            color: diff?.ratio_alert ? '#EF4444' : '#F59E0B',
-            offline: bothOffline,
-            val: (diff?.vib_ratio ?? 0).toFixed(4),
-          },
-        ].map(({ label, val, color, offline }) => (
-          <div key={label} className="glass-card p-5">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-            <p className="num text-2xl" style={{ color: offline ? '#6B7280' : color }}>{val}</p>
-            {offline && (
-              <span className="text-[9px] font-bold text-red-400 tracking-widest mt-1 block">NODE OFFLINE</span>
-            )}
-            {label.includes('ratio') && !bothOffline && diff?.ratio_alert && (
-              <span className="text-[9px] font-bold text-red-400 tracking-widest mt-1 block">⚠ RATIO ALERT</span>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Primary Stats - 3 Column Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        <StatCardEnhanced
+          icon={Activity}
+          label="Base Vibration"
+          value={(base?.vib_rms ?? 0).toFixed(4)}
+          unit="g"
+          status={!baseOnline ? 'offline' : (base?.vib_rms ?? 0) > 0.6 ? 'critical' : (base?.vib_rms ?? 0) > 0.35 ? 'warning' : 'normal'}
+          theme="emerald"
+        />
+        <StatCardEnhanced
+          icon={Activity}
+          label="Top Vibration"
+          value={(top?.vib_rms ?? 0).toFixed(4)}
+          unit="g"
+          status={!topOnline ? 'offline' : (top?.vib_rms ?? 0) > 0.6 ? 'critical' : (top?.vib_rms ?? 0) > 0.35 ? 'warning' : 'normal'}
+          theme="blue"
+        />
+        <StatCardEnhanced
+          icon={stableRatio ? TrendingUp : AlertTriangle}
+          label="Vibration Ratio"
+          value={(diff?.vib_ratio ?? 0).toFixed(4)}
+          status={diff?.ratio_alert ? 'critical' : 'normal'}
+          theme="amber"
+        />
+      </motion.div>
 
-      {/* Chart */}
-      <div className="glass-card p-5 flex-1 flex flex-col relative min-h-0">
-        <p className="text-sm font-semibold text-slate-300 mb-3">RMS Amplitude — Live Feed</p>
-        <OfflineOverlay nodeLabel="Base & Top" isOffline={bothOffline} />
-        <div className="flex-1 w-full min-h-[300px]">
-          <ResponsiveContainer width="100%" height={400}>
+      <SectionDivider title="RMS Amplitude Trend" icon={Activity} />
+
+      {/* Main Chart Section */}
+      <ChartContainer
+        title="Live Vibration Feed"
+        description="Base RMS vs Top RMS amplitude comparison"
+        footer={`Last 50 measurements • Base: ${baseOnline ? '✓ Online' : '✗ Offline'} • Top: ${topOnline ? '✓ Online' : '✗ Offline'}`}
+        fullWidth
+      >
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={history} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-              <XAxis dataKey="time" tick={{ fill: '#4B5563', fontSize: 10 }} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#4B5563', fontSize: 10 }} />
-              <Tooltip content={<ChartTip />} />
-              <Legend wrapperStyle={{ fontSize: 11, color: '#6B7280' }} />
-              <Line type="monotone" dataKey="Base RMS" stroke="#10B981" strokeWidth={2} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="Top RMS"  stroke="#3B82F6" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <defs>
+                <linearGradient id="baseVibGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity={0.1} />
+                </linearGradient>
+                <linearGradient id="topVibGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" vertical={false} />
+              <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: '#6B7280', fontSize: 11 }} label={{ value: 'g (RMS)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend
+                wrapperStyle={{ paddingTop: '20px' }}
+                iconType="line"
+                formatter={(value) => <span style={{ color: '#9CA3AF', fontSize: '12px' }}>{value}</span>}
+              />
+              <Line type="monotone" dataKey="Base RMS" stroke="#10B981" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="Top RMS" stroke="#3B82F6" strokeWidth={2.5} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </ChartContainer>
+
+      {/* Status Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
+        <div className="glass-card p-5 border border-emerald-500/30 bg-emerald-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${baseOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
+            <h3 className="text-sm font-semibold text-emerald-400">Base Node</h3>
+          </div>
+          <p className="text-xs text-slate-400">
+            {baseOnline ? `✓ RMS: ${(base?.vib_rms ?? 0).toFixed(4)} g` : '✗ Node Offline'}
+          </p>
+        </div>
+
+        <div className="glass-card p-5 border border-blue-500/30 bg-blue-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${topOnline ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
+            <h3 className="text-sm font-semibold text-blue-400">Top Node</h3>
+          </div>
+          <p className="text-xs text-slate-400">
+            {topOnline ? `✓ RMS: ${(top?.vib_rms ?? 0).toFixed(4)} g` : '✗ Node Offline'}
+          </p>
+        </div>
+
+        <div className="glass-card p-5 border border-amber-500/30 bg-amber-500/5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-2 h-2 rounded-full ${stableRatio ? 'bg-amber-500' : 'bg-red-500 animate-pulse'}`} />
+            <h3 className="text-sm font-semibold text-amber-400">Ratio Status</h3>
+          </div>
+          <p className="text-xs text-slate-400">
+            {stableRatio ? '✓ Normal' : '⚠ Alert Active'}
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 }

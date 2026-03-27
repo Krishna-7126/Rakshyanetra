@@ -1,11 +1,16 @@
 // src/pages/AIPrediction.jsx
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   ComposedChart, Area, Line, XAxis, YAxis, Tooltip,
   CartesianGrid, ResponsiveContainer, Legend, ReferenceLine,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import { useApp } from '../context/AppContext';
+import DashboardHeader from '../components/DashboardHeader';
+import StatCardEnhanced from '../components/StatCardEnhanced';
+import ChartContainer from '../components/ChartContainer';
+import SectionDivider from '../components/SectionDivider';
 import {
   Brain, AlertTriangle, CheckCircle, Shield, Activity,
   TrendingDown, TrendingUp, Zap,
@@ -276,7 +281,10 @@ export default function AIPrediction() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full w-full overflow-y-auto pb-6 fade-up">
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header */}
+      <DashboardHeader onRefresh={() => window.location.reload()} />
+
       <style>{`
         @keyframes sweep {
           from { transform: rotate(0deg); }
@@ -294,6 +302,47 @@ export default function AIPrediction() {
           <span className="text-[10px] text-violet-400 font-bold tracking-widest hidden sm:inline">NEURAL ENGINE ACTIVE</span>
         </div>
       </div>
+
+      {/* Key Metrics Cards */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+      >
+        <StatCardEnhanced
+          icon={Brain}
+          label="AI Confidence"
+          value={confidence}
+          unit="%"
+          status={confidence > 75 ? 'critical' : confidence > 50 ? 'warning' : 'normal'}
+          theme="violet"
+        />
+        <StatCardEnhanced
+          icon={TrendingUp}
+          label="Health Score"
+          value={Math.round(health)}
+          unit="/100"
+          status={health > 80 ? 'normal' : health > 50 ? 'warning' : 'critical'}
+          theme={health > 80 ? 'emerald' : health > 50 ? 'amber' : 'red'}
+        />
+        <StatCardEnhanced
+          icon={Zap}
+          label="Vibration Ratio"
+          value={(ratio ?? 0).toFixed(2)}
+          unit="×"
+          status={ratio > 1.5 ? 'critical' : ratio > 1.0 ? 'warning' : 'normal'}
+          theme="amber"
+        />
+        <StatCardEnhanced
+          icon={CheckCircle}
+          label="Forecast"
+          value={slope < 0 ? 'Degrading' : 'Stable'}
+          status={slope < 0 ? 'warning' : 'normal'}
+          theme={slope < 0 ? 'amber' : 'emerald'}
+        />
+      </motion.div>
+
+      <SectionDivider title="Predictive Analysis" icon={Brain} />
 
       {/* ── Component Grid ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 flex-1 min-h-0">
