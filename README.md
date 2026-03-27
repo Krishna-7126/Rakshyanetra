@@ -11,3 +11,4 @@
 
 Firebase configuration values must never be hardcoded in source files.
 Use `.env.local` for local development and repository/CI secrets for deployments.
+
