@@ -12,6 +12,7 @@ import DashboardHeader from '../components/DashboardHeader';
 import StatCardEnhanced from '../components/StatCardEnhanced';
 import ChartContainer from '../components/ChartContainer';
 import SectionDivider from '../components/SectionDivider';
+import AnomalyInsights from '../components/AnomalyInsights';
 import { RefreshCw, Zap, Server, Cpu, Activity, X, Brain, Gauge, AlertCircle, Lightbulb } from 'lucide-react';
 
 const MAX_POINTS = 50;
@@ -119,6 +120,38 @@ export default function Overview() {
       {/* Header */}
       <DashboardHeader onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
+      {/* Alert Banner - Critical/Warning Status */}
+      {bStatus !== 'normal' && (
+        <motion.div
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className={`rounded-2xl border px-6 py-4 backdrop-blur-xl flex items-start gap-4 ${
+            bStatus === 'critical'
+              ? 'border-red-500/50 bg-red-500/10'
+              : 'border-amber-500/50 bg-amber-500/10'
+          }`}
+        >
+          <motion.div
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className={`mt-1 ${bStatus === 'critical' ? 'text-red-400' : 'text-amber-400'}`}
+          >
+            {bStatus === 'critical' ? <AlertCircle size={24} /> : <Lightbulb size={24} />}
+          </motion.div>
+          <div className="flex-1">
+            <h3 className={`font-bold text-lg ${bStatus === 'critical' ? 'text-red-300' : 'text-amber-300'}`}>
+              {bStatus === 'critical' ? '⚠️ Critical Alert' : '🔔 System Warning'}
+            </h3>
+            <p className={`text-sm mt-1 ${bStatus === 'critical' ? 'text-red-200' : 'text-amber-200'}`}>
+              {bStatus === 'critical'
+                ? 'Abnormal vibration patterns detected. Immediate structural inspection recommended for preventive maintenance.'
+                : 'Elevated vibration levels detected. Monitor building for early anomaly warning signs.'}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Primary Stats - 4 Column Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -134,7 +167,7 @@ export default function Overview() {
         />
         <StatCardEnhanced
           icon={Cpu}
-          label="Sensors Active"
+          label="Monitoring Sensors"
           value={`${active}/2`}
           trend={active === 2 ? 'up' : 'down'}
           trendPercent={100}
@@ -143,15 +176,15 @@ export default function Overview() {
         />
         <StatCardEnhanced
           icon={Activity}
-          label="Avg RMS Reading"
+          label="Avg Vibration Level"
           value={avgRMS.toFixed(4)}
           unit="g"
           status={avgRMS > 0.6 ? 'critical' : avgRMS > 0.35 ? 'warning' : 'normal'}
           theme="emerald"
         />
         <StatCardEnhanced
-          icon={Zap}
-          label="Health Score"
+          icon={Brain}
+          label="Structural Health"
           value={Math.round(health)}
           unit="/100"
           status={health > 80 ? 'normal' : health > 50 ? 'warning' : 'critical'}
@@ -159,11 +192,11 @@ export default function Overview() {
         />
       </motion.div>
 
-      {/* Main Chart Section */}
+      {/* Live Telemetry - Core Monitoring Chart */}
       <ChartContainer
-        title="Live Telemetry Stream"
-        description="Real-time vibration monitoring from sensors"
-        footer="Last 50 measurements • Updates every new data point"
+        title="Live Vibration Telemetry"
+        description="Real-time structural monitoring • AI anomaly detection enabled"
+        footer="Last 50 measurements • Continuous monitoring active"
         fullWidth
       >
         <div className="h-80 w-full">
@@ -195,7 +228,7 @@ export default function Overview() {
         </div>
       </ChartContainer>
 
-      <SectionDivider title="Detailed Measurements" icon={Gauge} />
+      <SectionDivider title="Sensor Analysis & Anomaly Detection" icon={Gauge} />
 
       {/* Gauges Row */}
       <motion.div
@@ -204,9 +237,9 @@ export default function Overview() {
         transition={{ delay: 0.2 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
       >
-        <ChartContainer title="Base Vibration" minimal>
+        <ChartContainer title="Base Sensor RMS (g)" minimal>
           <CircularGauge
-            label="RMS"
+            label="Base RMS"
             value={base?.vib_rms}
             max={5}
             unit="g"
@@ -215,9 +248,9 @@ export default function Overview() {
             thresholds={{ warn: 0.35, crit: 0.60 }}
           />
         </ChartContainer>
-        <ChartContainer title="Top Vibration" minimal>
+        <ChartContainer title="Top Sensor RMS (g)" minimal>
           <CircularGauge
-            label="RMS"
+            label="Top RMS"
             value={top?.vib_rms}
             max={5}
             unit="g"
@@ -226,9 +259,9 @@ export default function Overview() {
             thresholds={{ warn: 0.35, crit: 0.60 }}
           />
         </ChartContainer>
-        <ChartContainer title="Tilt X Axis" minimal>
+        <ChartContainer title="Top Sensor Tilt X (deg)" minimal>
           <CircularGauge
-            label="Angle"
+            label="Tilt X"
             value={top?.tilt_x}
             max={15}
             unit="°"
@@ -237,9 +270,9 @@ export default function Overview() {
             thresholds={{ warn: 1.5, crit: 3.0 }}
           />
         </ChartContainer>
-        <ChartContainer title="Tilt Y Axis" minimal>
+        <ChartContainer title="Top Sensor Tilt Y (deg)" minimal>
           <CircularGauge
-            label="Angle"
+            label="Tilt Y"
             value={top?.tilt_y}
             max={15}
             unit="°"
@@ -248,7 +281,7 @@ export default function Overview() {
             thresholds={{ warn: 1.5, crit: 3.0 }}
           />
         </ChartContainer>
-        <ChartContainer title="Health Score" minimal>
+        <ChartContainer title="Building Health Index" minimal>
           <CircularGauge
             label="Overall"
             value={health}
@@ -260,7 +293,7 @@ export default function Overview() {
         </ChartContainer>
       </motion.div>
 
-      <SectionDivider title="Structural Analysis" icon={AlertCircle} />
+      <SectionDivider title="Structural Health Intelligence" icon={Brain} />
 
       {/* Metrics Row */}
       <motion.div
@@ -270,40 +303,50 @@ export default function Overview() {
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
         {/* Vibration Ratio Card */}
-        <ChartContainer title="Amplification Ratio" description="Top/Base energy transfer">
+        <ChartContainer title="Energy Amplification" description="AI-detected resonance factor">
           <div className="space-y-4">
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-bold num" style={{ color: ratioColor }}>
                 {vibAmpRatio.toFixed(2)}×
               </p>
-              <span className="text-xs text-slate-500">times stronger</span>
+              <span className="text-xs text-slate-500">amplification</span>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400">Amplification</span>
+                <span className="text-slate-400">Risk Level</span>
                 <span style={{ color: ratioColor }} className="font-semibold">
                   {Math.min(Math.max((vibAmpRatio / 2.0) * 100, 0), 100).toFixed(0)}%
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                <div
+              <div className="h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                <motion.div
                   className="h-full rounded-full transition-all duration-500"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(Math.max((vibAmpRatio / 2.0) * 100, 0), 100)}%` }}
+                  transition={{ duration: 0.8 }}
                   style={{
-                    width: `${Math.min(Math.max((vibAmpRatio / 2.0) * 100, 0), 100)}%`,
                     backgroundColor: ratioColor,
-                    boxShadow: `0 0 8px ${ratioColor}`,
+                    boxShadow: `0 0 12px ${ratioColor}`,
                   }}
                 />
               </div>
             </div>
-            <p className="text-xs text-slate-500">
-              {isCritRatio ? '🔴 Critical' : isWarnRatio ? '🟡 Alert' : '🟢 Normal'}
-            </p>
+            <motion.p 
+              className="text-xs px-3 py-2 rounded-lg font-semibold"
+              style={{
+                backgroundColor: ratioColor + '20',
+                color: ratioColor,
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {isCritRatio ? '⚠️ Critical: Immediate inspection advised' : isWarnRatio ? '🟡 Alert: Monitor closely for anomalies' : '✓ Normal: Structural stability confirmed'}
+            </motion.p>
           </div>
         </ChartContainer>
 
         {/* Drift Card */}
-        <ChartContainer title="Inter-Story Drift" description="Angular displacement">
+        <ChartContainer title="Structural Drift" description="Inter-story angular displacement">
           <div className="space-y-4">
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-bold num text-blue-400">
@@ -316,7 +359,7 @@ export default function Overview() {
                 <svg viewBox="0 0 100 100" className="w-full h-full">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#1F2937" strokeWidth="2" />
                   <line x1="50" y1="50" x2="50" y2="15" stroke="#94A3B8" strokeWidth="2" />
-                  <line
+                  <motion.line
                     x1="50"
                     y1="50"
                     x2={50 + Math.cos(((driftProxy * 10 - 90) * Math.PI) / 180) * 35}
@@ -326,13 +369,13 @@ export default function Overview() {
                   />
                 </svg>
               </div>
-              <p className="text-xs text-slate-400">Angular movement between levels</p>
+              <p className="text-xs text-slate-400">Current tilt between base & top sensors</p>
             </div>
           </div>
         </ChartContainer>
 
-        {/* Base Shear Card */}
-        <ChartContainer title="Base Shear Proxy" description="Lateral acceleration">
+        {/* Acceleration Card */}
+        <ChartContainer title="Lateral Acceleration" description="Estimated shear force impact">
           <div className="space-y-4">
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-bold num text-amber-400">
@@ -341,24 +384,44 @@ export default function Overview() {
               <span className="text-xs text-slate-500">m/s²</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="relative w-8 h-8 flex-shrink-0">
+              <div className="relative w-9 h-9 flex-shrink-0">
                 {baseShearAcc > 0 && (
                   <>
-                    <div
+                    <motion.div
                       className="absolute inset-0 rounded-full bg-amber-400"
-                      style={{ opacity: 0.3 }}
+                      animate={{ opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 2, repeat: Infinity }}
                     />
-                    <div className="absolute inset-0 rounded-full bg-amber-400 animate-ping opacity-75" />
+                    <motion.div 
+                      className="absolute inset-0 rounded-full bg-amber-400 animate-ping" 
+                      style={{ opacity: baseShearAcc > 0.5 ? 0.8 : 0.3 }}
+                    />
                   </>
                 )}
                 <div className="absolute inset-1 rounded-full bg-amber-400/20 border border-amber-400/50" />
               </div>
               <p className="text-xs text-slate-400">
-                Est. lateral acceleration impact
+                Estimated structural stress level
               </p>
             </div>
           </div>
         </ChartContainer>
+      </motion.div>
+
+      <SectionDivider title="AI Anomaly Detection & Early Warnings" icon={Brain} />
+
+      {/* Key Insights */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+        <AnomalyInsights 
+          buildingStatus={bStatus}
+          health={health}
+          vibrationRatio={vibAmpRatio}
+          driftProxy={driftProxy}
+        />
       </motion.div>
 
       <SectionDivider title="System Status" icon={Lightbulb} />
@@ -370,35 +433,64 @@ export default function Overview() {
         transition={{ delay: 0.4 }}
         className="grid grid-cols-1 md:grid-cols-3 gap-4"
       >
-        <div className="glass-card p-5 border border-emerald-500/30 bg-emerald-500/5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="text-sm font-semibold text-emerald-400">Base Sensor</h3>
+        <motion.div 
+          className={`glass-card-elevated p-6 border rounded-xl backdrop-blur-xl ${
+            baseOnline 
+              ? 'border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5' 
+              : 'border-slate-600/40 bg-slate-900/30'
+          }`}
+          whileHover={{ y: -2 }}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className={`w-3 h-3 rounded-full ${baseOnline ? 'bg-emerald-400' : 'bg-slate-600'}`}
+            />
+            <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wide">Base Sensor</h3>
           </div>
-          <p className="text-xs text-slate-400">
-            {baseOnline ? '✓ Connected and streaming data' : '✗ Offline / Not responding'}
+          <p className={`text-xs leading-relaxed ${baseOnline ? 'text-emerald-200' : 'text-slate-400'}`}>
+            {baseOnline ? '✓ Connected • Streaming live vibration data • Status: Active' : '✗ Offline / Not responding • Data unavailable'}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="glass-card p-5 border border-blue-500/30 bg-blue-500/5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className={`w-2 h-2 rounded-full ${topOnline ? 'bg-blue-500 animate-pulse' : 'bg-slate-600'}`} />
-            <h3 className="text-sm font-semibold text-blue-400">Top Sensor</h3>
+        <motion.div 
+          className={`glass-card-elevated p-6 border rounded-xl backdrop-blur-xl ${
+            topOnline 
+              ? 'border-blue-500/40 bg-gradient-to-br from-blue-500/10 to-blue-500/5' 
+              : 'border-slate-600/40 bg-slate-900/30'
+          }`}
+          whileHover={{ y: -2 }}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className={`w-3 h-3 rounded-full ${topOnline ? 'bg-blue-400' : 'bg-slate-600'}`}
+            />
+            <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wide">Top Sensor</h3>
           </div>
-          <p className="text-xs text-slate-400">
-            {topOnline ? '✓ Connected and streaming data' : '✗ Offline / Not responding'}
+          <p className={`text-xs leading-relaxed ${topOnline ? 'text-blue-200' : 'text-slate-400'}`}>
+            {topOnline ? '✓ Connected • Streaming live vibration data • Status: Active' : '✗ Offline / Not responding • Data unavailable'}
           </p>
-        </div>
+        </motion.div>
 
-        <div className="glass-card p-5 border border-cyan-500/30 bg-cyan-500/5">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-            <h3 className="text-sm font-semibold text-cyan-400">System Health</h3>
+        <motion.div 
+          className="glass-card-elevated p-6 border border-brand-orange/40 bg-gradient-to-br from-brand-orange/10 to-brand-orange/5 rounded-xl backdrop-blur-xl"
+          whileHover={{ y: -2 }}
+        >
+          <div className="flex items-center gap-2.5 mb-3">
+            <motion.div 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-3 h-3 rounded-full bg-brand-orange"
+            />
+            <h3 className="text-sm font-bold text-gray-100 uppercase tracking-wide">System Health</h3>
           </div>
-          <p className="text-xs text-slate-400">
-            {globalStatus === 'ONLINE' ? '✓ All systems operational' : `⚠ Status: ${globalStatus}`}
+          <p className="text-xs text-brand-orange/90 leading-relaxed">
+            {globalStatus === 'ONLINE' ? '✓ All systems operational • Monitoring active • AI detection enabled' : `⚠ Status: ${globalStatus}`}
           </p>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );

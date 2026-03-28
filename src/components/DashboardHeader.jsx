@@ -19,28 +19,64 @@ export default function DashboardHeader({ onRefresh, isRefreshing }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between mb-6"
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="flex items-center justify-between mb-8 px-1"
     >
-      <div>
-        <div className="flex items-center gap-2 text-sm mb-2">
-          <span className="text-slate-500">Dashboard</span>
-          <ChevronRight size={14} className="text-slate-600" />
-          <span className="text-cyan-400 font-semibold">{title}</span>
-        </div>
-        <h1 className="text-3xl font-bold text-slate-100">{title}</h1>
-        <p className="text-sm text-slate-500 mt-1">Real-time structural health monitoring</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        <motion.div 
+          className="flex items-center gap-2.5 text-xs mb-3 tracking-wide"
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <span className="text-slate-600 font-medium uppercase">Dashboard</span>
+          <ChevronRight size={12} className="text-slate-600" />
+          <span className="text-brand-orange font-bold uppercase tracking-[0.08em]">{title}</span>
+        </motion.div>
 
-      <button
+        <motion.h1 
+          className="text-4xl md:text-5xl font-bold text-white leading-tight tracking-tight"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {title}
+        </motion.h1>
+
+        <motion.p 
+          className="text-sm text-slate-400 mt-2.5 font-medium"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+        >
+          Real-time structural health monitoring & analytics
+        </motion.p>
+      </motion.div>
+
+      <motion.button
         onClick={onRefresh}
         disabled={isRefreshing}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-all hover:border-cyan-500/50 disabled:opacity-50"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.3 }}
+        className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-orange/20 to-brand-orange/10 border border-brand-orange/40 text-brand-orange hover:from-brand-orange/30 hover:to-brand-orange/20 hover:border-brand-orange/60 transition-all duration-300 disabled:opacity-50 backdrop-blur-sm font-semibold text-sm"
       >
-        <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-        <span className="text-sm font-medium">Refresh</span>
-      </button>
+        <motion.div
+          animate={isRefreshing ? { rotate: 360 } : {}}
+          transition={{ duration: 1, repeat: isRefreshing ? Infinity : 0 }}
+        >
+          <RefreshCw size={16} />
+        </motion.div>
+        <span>Refresh</span>
+      </motion.button>
     </motion.div>
   );
 }
