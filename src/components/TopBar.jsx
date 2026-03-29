@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { WifiOff, Radio, LogOut, AlertCircle, Shield } from 'lucide-react';
-import brandLogo from '../assets/rakshyanetra-brand.svg';
+import { WifiOff, Radio, LogOut } from 'lucide-react';
 
 export default function TopBar() {
   const { connected, data } = useApp();
@@ -14,8 +13,6 @@ export default function TopBar() {
   const [online, setOnline] = useState(navigator.onLine);
 
   const buildingStatus = data?.alerts?.building_status ?? 'normal';
-  const healthScore = data?.alerts?.health_score === '---' ? 0 : (data?.alerts?.health_score ?? 100);
-  const activeAlerts = data?.alerts?.active_alerts ?? 0;
 
   useEffect(() => {
     const tick = () => {
@@ -34,6 +31,7 @@ export default function TopBar() {
 
   const statusColor = buildingStatus === 'critical' ? 'text-red-400 bg-red-500/10' : buildingStatus === 'warning' ? 'text-amber-400 bg-amber-500/10' : 'text-emerald-400 bg-emerald-500/10';
   const statusBorder = buildingStatus === 'critical' ? 'border-red-500/40' : buildingStatus === 'warning' ? 'border-amber-500/40' : 'border-emerald-500/40';
+  const chipBase = 'h-9 hidden md:flex items-center gap-2 rounded-lg border px-3 backdrop-blur-sm';
 
   return (
     <header
@@ -48,9 +46,9 @@ export default function TopBar() {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
       >
-        <img src={brandLogo} alt="Rakshyanetra" className="h-[56px] md:h-[64px] w-auto hover:scale-105 transition-transform duration-300" />
+        <img src="/rakshyanetra-brand.svg" alt="Rakshyanetra" className="h-[56px] md:h-[64px] w-auto hover:scale-105 transition-transform duration-300" />
         <div className="hidden xl:flex flex-col gap-0.5">
-          <div className="text-xs font-bold text-brand-orange tracking-[0.12em] uppercase">Rakshyanetra</div>
+          <div className="brand-wordmark text-sm text-brand-orange tracking-[0.12em] uppercase">Rakshyanetra</div>
           <div className="text-[10px] text-slate-500 font-medium">Structural Health Monitor</div>
         </div>
       </motion.div>
@@ -63,7 +61,7 @@ export default function TopBar() {
       <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
         {/* Building Health Status */}
         <motion.div 
-          className={`hidden md:flex items-center gap-2 rounded-lg border px-3 py-2 backdrop-blur-sm ${statusBorder} ${statusColor}`}
+          className={`${chipBase} ${statusBorder} ${statusColor}`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
@@ -74,12 +72,12 @@ export default function TopBar() {
             className="h-2 w-2 rounded-full"
             style={{ backgroundColor: buildingStatus === 'critical' ? '#EF4444' : buildingStatus === 'warning' ? '#F59E0B' : '#10B981' }}
           />
-          <span className="text-[10px] font-bold tracking-[0.12em] uppercase">{buildingStatus === 'normal' ? '✓ Stable' : buildingStatus === 'warning' ? '⚠ Watch' : '🔴 Alert'}</span>
+          <span className="text-[10px] font-bold tracking-[0.14em] uppercase">{buildingStatus === 'normal' ? 'Stable' : buildingStatus === 'warning' ? 'Watch' : 'Alert'}</span>
         </motion.div>
 
         {/* Firebase Connection */}
         <motion.div 
-          className="hidden md:flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 backdrop-blur-sm"
+          className={`${chipBase} border-slate-700/60 bg-slate-900/60`}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.15 }}
@@ -96,7 +94,7 @@ export default function TopBar() {
 
         {/* Internet Connection */}
         <motion.div 
-          className="hidden sm:flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 backdrop-blur-sm"
+          className="h-9 hidden sm:flex items-center gap-1.5 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 backdrop-blur-sm"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
@@ -112,7 +110,7 @@ export default function TopBar() {
 
         {/* Time & Date */}
         <motion.div 
-          className="hidden lg:flex items-center rounded-lg border border-slate-700/60 bg-slate-900/65 px-3 py-2 backdrop-blur-sm"
+          className="h-9 hidden lg:flex items-center rounded-lg border border-slate-700/60 bg-slate-900/65 px-3 backdrop-blur-sm"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.25 }}
@@ -128,7 +126,7 @@ export default function TopBar() {
           onClick={logout}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-700/70 bg-slate-900/60 hover:bg-slate-900/80 px-3 py-2 text-slate-300 hover:text-white transition-all duration-200 backdrop-blur-sm"
+          className="h-9 flex items-center gap-1.5 rounded-lg border border-slate-700/70 bg-slate-900/60 hover:bg-slate-900/80 px-3 text-slate-300 hover:text-white transition-all duration-200 backdrop-blur-sm"
           title="Logout"
         >
           <LogOut size={13} />
