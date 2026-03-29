@@ -22,6 +22,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 const Config = lazy(() => import('./pages/Config'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -98,7 +99,8 @@ function AuthGate() {
 
   useEffect(() => {
     if (loading) return;
-    const publicRoutes = ['/login', '/signup'];
+    const publicRoutes = ['/login', '/signup', '/auth/action'];
+    const forceReauth = new URLSearchParams(location.search).get('reauth') === '1';
     
     // If unauthenticated outside public route, redirect to login with location state
     if (!user && !publicRoutes.includes(location.pathname)) {
@@ -107,7 +109,7 @@ function AuthGate() {
     
     // If authenticated and on login/signup, redirect to dashboard
     if (user && ['/', '/login', '/signup'].includes(location.pathname)) {
-      if (location.pathname !== '/') navigate('/', { replace: true });
+      if (location.pathname !== '/' && !forceReauth) navigate('/', { replace: true });
     }
   }, [user, loading, location, navigate]);
 
@@ -124,6 +126,7 @@ function AuthGate() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/auth/action" element={<ResetPassword />} />
         <Route path="/*" element={user ? <AppLayout /> : <Login />} />
       </Routes>
     </Suspense>
