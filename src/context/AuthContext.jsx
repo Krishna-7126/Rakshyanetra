@@ -70,7 +70,11 @@ export function AuthProvider({ children }) {
   };
 
   const resetPassword = async (email) => {
-    await sendPasswordResetEmail(auth, email);
+    const actionCodeSettings = {
+      url: `${window.location.origin}/auth/action`,
+      handleCodeInApp: false,
+    };
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
   };
 
   const logout = async () => {
