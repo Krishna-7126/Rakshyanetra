@@ -1,11 +1,14 @@
 // src/pages/Login.jsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, KeyRound } from 'lucide-react';
-import brandLogo from '../assets/rakshyanetra-brand.svg';
+import AuthShell from '../components/AuthShell';
+
+const REMEMBER_PREF_KEY = 'remember_me_pref';
+const REMEMBERED_EMAIL_KEY = 'remembered_email';
 
 function Login() {
   const [isResetMode, setIsResetMode] = useState(false);
@@ -19,12 +22,32 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useEffect(() => {
+    const rememberPref = localStorage.getItem(REMEMBER_PREF_KEY) === 'true';
+    const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? '';
+
+    setRememberMe(rememberPref);
+    if (rememberPref && rememberedEmail) {
+      setEmail(rememberedEmail);
+    }
+  }, []);
+
+  const persistRememberPreference = (remember, currentEmail) => {
+    localStorage.setItem(REMEMBER_PREF_KEY, String(remember));
+    if (remember && currentEmail) {
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, currentEmail);
+    } else {
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       await login(email, password, rememberMe);
+      persistRememberPreference(rememberMe, email);
       showToast('Signed in successfully!', 'success');
 
       // Redirect to original location or dashboard
@@ -55,6 +78,7 @@ function Login() {
 
     try {
       await loginWithGoogle(rememberMe);
+      persistRememberPreference(rememberMe, email);
       showToast('Signed in with Google!', 'success');
 
       // Redirect to original location or dashboard
@@ -98,80 +122,13 @@ function Login() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -40 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="min-h-screen relative overflow-hidden bg-brand-deep flex items-center justify-center px-4 py-8"
+    <AuthShell
+      direction="left"
+      eyebrow="Secure Console Login"
+      title={<>Welcome to <span className="text-brand-orange">Rakshyanetra</span></>}
+      description="Structural health monitoring platform with AI-driven anomaly detection for early warnings and preventive maintenance decisions."
     >
-      {/* Enhanced gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-deep via-slate-900 to-brand-deep" />
-      
-      {/* Animated gradient orbs */}
-      <div className="absolute -top-40 -left-32 h-96 w-96 rounded-full bg-brand-blue/25 blur-3xl opacity-80" />
-      <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-brand-orange/20 blur-3xl opacity-80" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-slate-800/30 blur-3xl opacity-40" />
-
-      {/* Subtle technical background texture */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.07] md:opacity-[0.14]"
-        style={{
-          backgroundImage:
-            'repeating-linear-gradient(90deg, rgba(106,143,191,0.25) 0px, rgba(106,143,191,0.25) 1px, transparent 1px, transparent 72px), repeating-linear-gradient(0deg, rgba(106,143,191,0.18) 0px, rgba(106,143,191,0.18) 1px, transparent 1px, transparent 72px)',
-        }}
-      />
-      <div
-        className="login-bg-glow absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(70% 45% at 15% 20%, rgba(236,125,29,0.08) 0%, transparent 70%), radial-gradient(55% 40% at 80% 75%, rgba(106,143,191,0.1) 0%, transparent 70%)',
-        }}
-      />
-
-      <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-[26px] border border-slate-600/50 bg-gradient-to-b from-slate-900/80 to-slate-950/90 shadow-[0_32px_64px_rgba(0,0,0,0.8)] backdrop-blur-xl">
-        <div className="p-7 md:p-10 lg:p-12">
-          <div className="mx-auto w-full max-w-xl">
-            <div className="mb-9">
-              <div className="flex items-center justify-start mb-6">
-                <motion.img
-                  src={brandLogo}
-                  alt="Rakshyanetra"
-                  className="h-14 md:h-16 w-auto"
-                  initial={{ scale: 0.94, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.45 }}
-                />
-              </div>
-
-              <motion.p
-                className="text-[11px] tracking-[0.16em] uppercase text-brand-orange/90 font-semibold"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Secure Console Login
-              </motion.p>
-
-              <motion.h1
-                className="login-hero-title mt-2 text-4xl md:text-5xl text-white leading-[1.02] tracking-tight"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.28 }}
-              >
-                Welcome to <span className="text-brand-orange">Rakshyanetra</span>
-              </motion.h1>
-
-              <motion.p
-                className="text-base text-slate-300 mt-4 font-medium leading-relaxed max-w-[62ch]"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-              >
-                Structural health monitoring platform with AI-driven anomaly detection for early warnings and preventive maintenance decisions.
-              </motion.p>
-            </div>
-
-            <form onSubmit={isResetMode ? handleResetPassword : handleLogin} className="space-y-6">
+      <form onSubmit={isResetMode ? handleResetPassword : handleLogin} className="space-y-6" autoComplete="on">
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -182,6 +139,8 @@ function Login() {
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-orange transition-colors duration-300" size={18} />
                     <input
                       type="email"
+                      name="email"
+                      autoComplete="username"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
@@ -202,6 +161,8 @@ function Login() {
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-brand-orange transition-colors duration-300" size={18} />
                       <input
                         type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
@@ -284,18 +245,10 @@ function Login() {
                   transition={{ delay: 0.45 }}
                 >
                   <span className="hover:text-slate-400 transition-colors cursor-default">Protected by Firebase Authentication</span>
-                  <motion.img 
-                    src={brandLogo} 
-                    alt="Rakshyanetra" 
-                    className="h-6 w-auto opacity-70 hover:opacity-100 transition-opacity"
-                    whileHover={{ scale: 1.05 }}
-                  />
+                  <span className="text-[10px] tracking-[0.16em] uppercase text-slate-500">SOC Compliant</span>
                 </motion.div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </motion.div>
+      </form>
+    </AuthShell>
   );
 }
 

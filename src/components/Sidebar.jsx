@@ -38,7 +38,7 @@ function NavItem({ to, icon: Icon, label }) {
     <NavLink
       to={to} end={to === '/'}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 group relative
+        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium tracking-[0.01em] transition-all duration-200 group relative
          ${isActive
            ? 'text-white'
            : 'text-slate-300 hover:text-white'}`
@@ -72,7 +72,7 @@ function NavItem({ to, icon: Icon, label }) {
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.16em] mb-2 px-2 flex items-center gap-2">
+    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.18em] mb-2.5 px-2 flex items-center gap-2">
       <span className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(106,143,191,0.35), transparent)' }} />
       {children}
     </p>
@@ -93,19 +93,19 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="sidebar-border w-64 flex-shrink-0 flex flex-col py-4 px-3 overflow-y-auto relative z-10"
+      className="sidebar-border w-64 xl:w-[17.5rem] flex-shrink-0 flex flex-col py-4 px-3 overflow-y-auto relative z-10"
       style={{
         background: 'linear-gradient(180deg, rgba(8,23,43,0.97) 0%, rgba(5,16,32,0.96) 100%)',
         backdropFilter: 'blur(20px)',
       }}
     >
-      <div className="mb-5">
+      <div className="mb-6">
         <SectionLabel>Buildings</SectionLabel>
         {blocks.map(({ key, status, live }) => (
           <button
             key={key}
             onClick={() => selectBlock(key)}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl mb-1
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl mb-1.5
                          transition-all duration-200 text-left relative overflow-hidden
                          ${activeBlock === key ? '' : 'hover:bg-white/5'}
                          ${!live ? 'opacity-50 hover:opacity-70' : ''}`}
@@ -126,7 +126,7 @@ export default function Sidebar() {
       </div>
 
       {/* Sensor Analysis */}
-      <div className={`mb-5 transition-opacity duration-300 ${activeBlock !== 'A' ? 'opacity-25 pointer-events-none' : ''}`}>
+      <div className={`mb-6 transition-opacity duration-300 ${activeBlock !== 'A' ? 'opacity-25 pointer-events-none' : ''}`}>
         <SectionLabel>Sensor Analysis</SectionLabel>
         <div className="flex flex-col gap-0.5">
           {sensorLinks.map(l => <NavItem key={l.to} {...l} />)}
