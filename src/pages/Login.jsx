@@ -101,8 +101,12 @@ function Login() {
 
     setLoading(true);
     try {
-      await resetPassword(email);
-      showToast('Password reset email sent! Check your inbox/spam.', 'success');
+      const result = await resetPassword(email);
+      if (result?.usedFallback) {
+        showToast('Reset email sent. Firebase used default reset page because custom reset URL is not authorized yet.', 'info', 6500);
+      } else {
+        showToast('Password reset email sent! Check your inbox/spam.', 'success');
+      }
       setIsResetMode(false);
       setEmail('');
     } catch (err) {
@@ -113,6 +117,12 @@ function Login() {
         message = 'No account found with this email address.';
       } else if (errorCode === 'auth/invalid-email') {
         message = 'Please enter a valid email address.';
+      } else if (errorCode === 'auth/too-many-requests') {
+        message = 'Too many reset attempts. Please try again in a few minutes.';
+      } else if (errorCode === 'auth/network-request-failed') {
+        message = 'Network error while sending reset email. Check internet and try again.';
+      } else if (errorCode === 'auth/unauthorized-continue-uri') {
+        message = 'Reset URL is not authorized in Firebase settings.';
       }
 
       showToast(message, 'error');

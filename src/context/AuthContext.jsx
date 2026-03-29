@@ -74,7 +74,26 @@ export function AuthProvider({ children }) {
       url: `${window.location.origin}/auth/action`,
       handleCodeInApp: false,
     };
-    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+
+    try {
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
+      return { usedFallback: false };
+    } catch (err) {
+      const recoverable = new Set([
+        'auth/invalid-continue-uri',
+        'auth/unauthorized-continue-uri',
+        'auth/missing-continue-uri',
+      ]);
+
+      // If custom handler URL is not yet authorized in Firebase, still send the email
+      // without custom action settings so users can recover access.
+      if (recoverable.has(err?.code)) {
+        await sendPasswordResetEmail(auth, email);
+        return { usedFallback: true, originalErrorCode: err.code };
+      }
+
+      throw err;
+    }
   };
 
   const logout = async () => {
